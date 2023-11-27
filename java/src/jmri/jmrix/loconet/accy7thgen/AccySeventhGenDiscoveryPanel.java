@@ -277,7 +277,7 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
     public void get7thGenDevices() {
         if (tc != null) {
             requestCount++;
-            //log.warn("request #{}",requestCount);
+            //log.debug("request #{}",requestCount);
             tc.sendLocoNetMessage(msgRoutesQuery());
             startRoutesResponseTimer();
         }
@@ -469,14 +469,14 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
         findButton.setEnabled(true);
         gotTheFindMessage = false;
         int rc = devicesModel.getRowCount();
-        //log.warn("timeout.  found () devices.", rc);
+        //log.debug("timeout.  found () devices.", rc);
         if (rc < oldRowCount) {
             // wait until MORECOUNT more requests are sent
             cancelRescanAfterCount = requestCount + MORECOUNT;
-            log.warn("WARN - row count dropped here!!! (request count {})", requestCount);
+            log.debug("WARN - row count dropped here!!! (request count {})", requestCount);
         }
         if (rc != oldRowCount) {
-            log.warn("GOT NEW ROW COUNT of {} versus {} for request {}",
+            log.debug("Got new row count of {} versus {} for request {}",
                     rc, oldRowCount, requestCount);
             oldRowCount = rc;
         }
@@ -582,8 +582,14 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
     public void dispose() {
         rrtMustNotStart = true;
         retryItMustNotStart = true;
-        boolean wasted = rrt.cancel();
-        boolean wasted2 = retryIt.cancel();
+        boolean wasted = false;
+        boolean wasted2 = false;
+        if (rrt != null) {
+            wasted = rrt.cancel();
+        }
+        if (retryIt != null) {
+            wasted2 = retryIt.cancel();
+        }
         var wasted3 = wasted || wasted2;
         log.debug("results: {}",wasted3);
         devicesScroll = null;
