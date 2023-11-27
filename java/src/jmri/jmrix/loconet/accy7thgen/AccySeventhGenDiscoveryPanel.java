@@ -10,7 +10,7 @@ import javax.swing.JButton;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.SwingConstants;
-//import javax.swing.table.*;
+import javax.swing.table.*;
 
 import jmri.jmrix.loconet.*;
 import jmri.jmrix.loconet.swing.LnPanel;
@@ -201,6 +201,9 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
                 "Device", "Ser Num", "Base Addr", "Turnouts", "Sensors",
                 "Reporters", "Aspects", "Powers","Action","First Op Sws");
          int modelsActionColumn = model.getColumnIndex("Action");
+
+        ButtonColumn buttonColumn = new ButtonColumn(devicesTable,
+                changeBaseAddrAction, modelsActionColumn);
 
         devicesModel.setColumnClass(9, JButton.class);
 
