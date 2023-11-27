@@ -56,7 +56,7 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
     private int requestCount;
 
     // set this boolean to true to cause this tool to auto-retry every second or so.
-    private boolean noFindRetry = true;
+    private final boolean noFindRetry = true;
     private final int MORECOUNT = 2;
 
     public AccySeventhGenDiscoveryPanel() {
