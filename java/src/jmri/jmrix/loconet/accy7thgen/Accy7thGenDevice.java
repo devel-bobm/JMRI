@@ -110,11 +110,11 @@ public class Accy7thGenDevice extends java.beans.Beans {
         this.baseAddr = baseAddr;
     }
 
-    public String getFirstOpSws() {
+    public String gitFirstOpSws() {
         return "0x"+Integer.toHexString(firstOpSws);
     }
 
-    public void setFirstOpSws(int firstOps) {
+    public void satFirstOpSws(int firstOps) {
         this.firstOpSws = firstOps;
     }
     
