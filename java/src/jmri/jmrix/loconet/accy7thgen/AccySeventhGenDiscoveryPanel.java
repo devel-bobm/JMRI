@@ -18,6 +18,8 @@ import jmri.jmrix.loconet.swing.LnPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Discovery and "change base address" tool for Digitrax 7th-Generation Accessory
  * decoders.
@@ -201,8 +203,12 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
         ReorderableBeanTable.reorderColumns(devicesTable,
                 "Device", "Ser Num", "Base Addr", "Turnouts", "Sensors",
                 "Reporters", "Aspects", "Powers","Action","First Op Sws");
-         int modelsActionColumn = model.getColumnIndex("Action");
 
+        int modelsActionColumn = model.getColumnIndex("Action");
+
+        // This "buttonColumn" variable is not used here, but IS used via JAVA's 
+        // "reflection" process...
+        @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "buttonColumn is used by 'reflection', _not_ by explicit reference")
         ButtonColumn buttonColumn = new ButtonColumn(devicesTable,
                 changeBaseAddrAction, modelsActionColumn);
 
