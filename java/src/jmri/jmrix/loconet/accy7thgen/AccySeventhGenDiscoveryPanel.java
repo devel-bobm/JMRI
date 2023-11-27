@@ -57,6 +57,7 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
 
     // set this boolean to true to cause this tool to auto-retry every second or so.
     private boolean noFindRetry = true;
+    private final int MORECOUNT = 2;
 
     public AccySeventhGenDiscoveryPanel() {
         super();
@@ -470,8 +471,8 @@ public class AccySeventhGenDiscoveryPanel extends LnPanel implements LocoNetList
         int rc = devicesModel.getRowCount();
         //log.warn("timeout.  found () devices.", rc);
         if (rc < oldRowCount) {
-            // wait until 4 more requests are sent
-            cancelRescanAfterCount = requestCount +4;
+            // wait until MORECOUNT more requests are sent
+            cancelRescanAfterCount = requestCount + MORECOUNT;
             log.warn("WARN - row count dropped here!!! (request count {})", requestCount);
         }
         if (rc != oldRowCount) {
