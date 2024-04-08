@@ -71,6 +71,7 @@ public final class DecoderList {
         String developer = manufacturerID == LnNodeManager.PUBLIC_DOMAIN_DIY_MANAGER_ID ? Integer.toString(developerID) : null;
         List<DecoderFile> decoders = decoderFileMap.get(manufacturerID);
         for (DecoderFile decoder : decoders) {
+            log.warn("decoder.fileName() = {}, decoder.getProductID() = {}", decoder.getFileName(), decoder.getProductID());
             if (developer == null || (developer.equals(decoder.getDeveloperID()))) {
                 String productIDs = decoder.getProductID();
                 String[] products = productIDs.split(",");
@@ -95,30 +96,34 @@ public final class DecoderList {
         String oldFam = "";
         String oldProd = "";
         for (DecoderFile decoderFile : decoders) {
-            String mfg = decoderFile.getMfg();
-            int mfgID = Integer.parseInt(decoderFile.getMfgID());
-            String dev = decoderFile.getDeveloperID();
-            String model = decoderFile.getModel();
-            String fam = decoderFile.getFamily();
             String prod = decoderFile.getProductID();
-            if (prod == null) {
-                prod = "";
-            }
-            if (!oldMfg.equals(mfg) || !oldDev.equals(dev) || !oldModel.equals(model) || !oldFam.equals(fam) || !oldProd.equals(prod)) {
-                List<DecoderFile> decoderFiles = decoderFileMap.get(mfgID);
-                if (decoderFiles == null) {
-                    decoderFiles = new ArrayList<>();
-                    decoderFileMap.put(mfgID, decoderFiles);
+            String dev = decoderFile.getDeveloperID();
+            if ((prod != null) && (!dev.equals("-1")) ) {
+                //only care if have developer ID <> "-1" and prod != "" 
+                String mfg = decoderFile.getMfg();
+                int mfgID = Integer.parseInt(decoderFile.getMfgID());
+                String model = decoderFile.getModel();
+                String fam = decoderFile.getFamily();
+                if (!oldMfg.equals(mfg) || !oldDev.equals(dev) || !oldModel.equals(model) || !oldFam.equals(fam) || !oldProd.equals(prod)) {
+                    List<DecoderFile> decoderFiles = decoderFileMap.get(mfgID);
+                    if (decoderFiles == null) {
+                        decoderFiles = new ArrayList<>();
+                        decoderFileMap.put(mfgID, decoderFiles);
+                    }
+                    decoderFiles.add(decoderFile);
+                    _decoders.add(decoderFile);
+                    log.warn("added decoder file's model {}, mfg {}, prod {}, devel {}.", decoderFile.getModel(),
+                            decoderFile.getManufacturerID(), decoderFile.getProductID(), 
+                            decoderFile.getDeveloperID());
                 }
-                decoderFiles.add(decoderFile);
-                _decoders.add(decoderFile);
+                oldMfg = mfg;
+                oldDev = dev;
+                oldModel = model;
+                oldFam = fam;
+                oldProd = prod;
             }
-            oldMfg = mfg;
-            oldDev = dev;
-            oldModel = model;
-            oldFam = fam;
-            oldProd = prod;
         }
+        log.warn("readDecoderTypes: SV2 types: {}", _decoders.size());
     }
 
     private static final Logger log = LoggerFactory.getLogger(DecoderList.class);
