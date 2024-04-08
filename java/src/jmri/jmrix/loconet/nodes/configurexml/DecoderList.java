@@ -70,6 +70,11 @@ public final class DecoderList {
     public DecoderFile getProduct(int manufacturerID, int developerID, int productID) {
         String developer = manufacturerID == LnNodeManager.PUBLIC_DOMAIN_DIY_MANAGER_ID ? Integer.toString(developerID) : null;
         List<DecoderFile> decoders = decoderFileMap.get(manufacturerID);
+        if (decoders == null) {
+            // no decoders with the same mayufacturer ID!
+            return null;
+        }
+        
         for (DecoderFile decoder : decoders) {
             log.warn("decoder.fileName() = {}, decoder.getProductID() = {}", decoder.getFileName(), decoder.getProductID());
             if (developer == null || (developer.equals(decoder.getDeveloperID()))) {
