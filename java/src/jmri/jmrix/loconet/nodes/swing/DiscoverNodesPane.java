@@ -242,9 +242,16 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
     public void openProgrammerActionSelected() {
 
         LnNode selectedNode = getSelectedNode();
-        log.debug("LnNode: Mfg: {}, Dev: {}, Prod: {}, decoderFile: {}",
-                selectedNode.getManufacturer(), selectedNode.getDeveloper(), selectedNode.getProduct(), selectedNode.getDecoderFile());
+        log.warn("LnNode: Mfg: {}, mfgId = {}, Dev: {}, devId = {}, Prod: {}, \n\tdecoderFile: {}.",
+                selectedNode.getManufacturer(), selectedNode.getManufacturerID(),
+                selectedNode.getDeveloper(), selectedNode.getDeveloperID(), 
+                selectedNode.getProduct(), selectedNode.getDecoderFile());
 
+        if (selectedNode.getDecoderFile() == null) {
+            log.warn("openProgrammerActionSelected: no selected decoder file!  Aborting!");
+            return;
+        }
+        
         String programmerFilename;
 
         if (ProgDefault.getDefaultProgFile() != null) {
@@ -260,6 +267,7 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 //        re.setLongAddress(true);
 //        System.out.format("DccAddress: %d%n", selectedNode.getAddress());
         re.setDccAddress(Integer.toString(selectedNode.getAddress()));
+        log.warn("selectedNode = {}, selectedNode.getDecoderFile() = {}",selectedNode, selectedNode.getDecoderFile());
         re.setMfg(selectedNode.getDecoderFile().getMfg());
         re.setDecoderFamily(selectedNode.getDecoderFile().getFamily());
 //        re.setModel(selectedNode.getDecoderFile().getModel());
