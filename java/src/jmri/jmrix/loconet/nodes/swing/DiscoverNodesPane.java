@@ -95,26 +95,19 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         nodeAddrColumn.setMinWidth(40);
         nodeAddrColumn.setMaxWidth(80);
         nodeAddrColumn.setCellRenderer(dtcen);
-//        nodeAddrColumn.setResizable(true);
         nodeAddrColumn.setResizable(false);
 
         TableColumn nodenumColumn = assignmentColumnModel.getColumn(NodeTableModel.MANUFACTURER_COLUMN);
-//        nodenumColumn.setMinWidth(40);
-//        nodenumColumn.setMaxWidth(80);
         nodenumColumn.setMinWidth(150);
         nodenumColumn.setMaxWidth(200);
         nodenumColumn.setCellRenderer(dtcen);
         nodenumColumn.setResizable(true);
-//        nodenumColumn.setResizable(false);
 
         TableColumn nodetypeColumn = assignmentColumnModel.getColumn(NodeTableModel.DEVELOPER_COLUMN);
-//        nodenumColumn.setMinWidth(40);
-//        nodenumColumn.setMaxWidth(80);
         nodetypeColumn.setMinWidth(150);
         nodetypeColumn.setMaxWidth(200);
         nodetypeColumn.setCellRenderer(dtcen);
         nodetypeColumn.setResizable(true);
-//        nodetypeColumn.setResizable(false);
 
         JScrollPane nodeTableScrollPane = new JScrollPane(nodeTable);
 
@@ -122,11 +115,11 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         JComboBox<String> comboBox = new JComboBox<>();
         comboBox.addItem(Bundle.getMessage("SelectSelect"));
         comboBox.addItem(Bundle.getMessage("SelectEdit"));
-//        comboBox.addItem(Bundle.getMessage("SelectInfo"));
         comboBox.addItem(Bundle.getMessage("SelectDelete"));
         comboBox.addItem(Bundle.getMessage("SelectProgram"));
         selectColumn.setCellEditor(new DefaultCellEditor(comboBox));
 
+        
         selectColumn.setMinWidth(40);
         selectColumn.setMaxWidth(90);
         selectColumn.setCellRenderer(dtcen);
@@ -144,7 +137,6 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 
         nodeTable.setAutoCreateRowSorter(true);
         nodeTable.getRowSorter().toggleSortOrder(NodeTableModel.ADDRESS_COLUMN);
-//        nodeTable.getRowSorter().toggleSortOrder(NodeTableModel.NODENUM_COLUMN);
 
         contentPane.add(nodeTablePanel);
 
@@ -171,20 +163,6 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         startSV2Query();
     }
 
-    /*.*
-     * Handle the done button click.
-     *./
-    public void throttleIdButtonActionPerformed() {
-        DiscoverThrottleFrame f = new DiscoverThrottleFrame(_memo);
-        try {
-            f.initComponents();
-        } catch (Exception ex) {
-            log.error("DiscoverNodesFrame Exception-C2: "+ex.toString());
-        }
-        f.setLocation(20,40);
-        f.setVisible(true);
-    }
-
     /**
      * Handle the done button click.
      */
@@ -202,7 +180,6 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 
         // re-send the LnSV2 query
         startSV2Query();
-
     }
 
     private void addNode(LnNode node) {
@@ -269,17 +246,13 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
             programmerFilename = ProgDefault.findListOfProgFiles()[0];
         }
 
-//        DccLocoAddress addr = new DccLocoAddress(selectedNode.getAddress(), true);
         DccLocoAddress addr = new DccLocoAddress(selectedNode.getAddress(), false);
 
         RosterEntry re = new RosterEntry();
-//        re.setLongAddress(true);
-//        System.out.format("DccAddress: %d%n", selectedNode.getAddress());
         re.setDccAddress(Integer.toString(selectedNode.getAddress()));
         log.warn("selectedNode = {}, selectedNode.getDecoderFile() = {}",selectedNode, selectedNode.getDecoderFile());
         re.setMfg(selectedNode.getDecoderFile().getMfg());
         re.setDecoderFamily(selectedNode.getDecoderFile().getFamily());
-//        re.setModel(selectedNode.getDecoderFile().getModel());
         re.setDecoderModel(selectedNode.getDecoderFile().getModel());
         re.setId(SymbolicProgBundle.getMessage("LabelNewDecoder")); // NOI18N
 
@@ -290,37 +263,13 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 
         String title = java.text.MessageFormat.format(SymbolicProgBundle.getMessage("FrameServiceProgrammerTitle"),
                 new Object[]{selectedNode.getProduct()});
-//        String title = java.text.MessageFormat.format(SymbolicProgBundle.getMessage("FrameServiceProgrammerTitle"),
-//                new Object[]{"new decoder"});
-//        title = java.text.MessageFormat.format(SymbolicProgBundle.getMessage("FrameServiceProgrammerTitle"),
-//                new Object[]{re.getId()});
         PaneOpsProgFrame p = new PaneOpsProgFrame(selectedNode.getDecoderFile(), re,
                 title, "programmers" + File.separator + programmerFilename + ".xml",
                 _memo.getProgrammerManager().getAddressedProgrammer(addr));
         p.pack();
         p.setVisible(true);
         ThreadingUtil.runOnGUIEventually(p::clickButtonReadAll);
-
-
-
-/*
-        NodeConfigManagerFrame f = new NodeConfigManagerFrame(_memo);
-        f.nodeTableModel = nodeTableModel;
-        f.selectedTableRow = nodeTable.convertRowIndexToModel(nodeTable.getSelectedRow());
-        try {
-            f.initNodeConfigWindow();
-            f.deleteNodeButtonActionPerformed(selectedNodeAddr);
-        } catch (Exception ex) {
-            log.info("deleteActionSelected", ex);
-
-        }
-        f.setLocation(200, 200);
-        f.buttonSet_DELETE();
-        f.setVisible(true);
-*/
     }
-
-
 
     /**
      * Set up table for displaying bit assignments
@@ -342,14 +291,11 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 
                 case SERIALNO_COLUMN:
                 case ADDRESS_COLUMN:
-//                case NUMINBYTES_COLUMN:
-//                case NUMOUTBYTES_COLUMN:
                     return Integer.class;
 
                 case SELECT_COLUMN:
                     return String.class;
 
-//                case NODEDESC_COLUMN:
                 default:
                     return String.class;
             }
@@ -393,14 +339,9 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         public void setValueAt(Object value, int row, int col) {
             if (col == SELECT_COLUMN) {
                 if (Bundle.getMessage("SelectEdit").equals(value)) {
-//                    editActionSelected();
-//                } else if (Bundle.getMessage("SelectInfo").equals(value)) {
-//                    infoActionSelected();
+                    // TODO: rename and populate
                 } else if (Bundle.getMessage("SelectDelete").equals(value)) {
-//                    deleteActionSelected();
-//        comboBox.addItem(Bundle.getMessage("SelectProgram"));
-//        comboBox.addItem("Daniel Open programmer");
-//                } else if ("Daniel Open programmer".equals(value)) {
+                    // TODO: rename and populate
                 } else if (Bundle.getMessage("SelectProgram").equals(value)) {
                     openProgrammerActionSelected();
                 }
@@ -415,52 +356,19 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
             switch (c) {
                 case ADDRESS_COLUMN:
                     return lnNodes.get(r).getAddress();
-//                    return Integer.toString(lnNode.get(r).getNumBitsPerCard());
 
                 case MANUFACTURER_COLUMN:
                     if (lnNodes.get(r) == null) return 0;    // DANIEL
                     return lnNodes.get(r).getManufacturer();
-//                    return lnNode.get(r).getAddress();
 
                 case DEVELOPER_COLUMN:
                     return lnNodes.get(r).getDeveloper();
-//                    return "  " + nodeTableTypes[lnNode.get(r).getNodeType()];
 
                 case PRODUCT_COLUMN:
                     return lnNodes.get(r).getProduct();
-//                    return Integer.toString(lnNode.get(r).getNumBitsPerCard());
 
                 case SERIALNO_COLUMN:
                     return lnNodes.get(r).getSerialNumber();
-//                    return Integer.toString(lnNode.get(r).getNumBitsPerCard());
-/*
-                case NUMINCARDS_COLUMN:
-                    if (lnNode.get(r).getNodeType() == LnNode.SMINI) {
-                        return Integer.toString(lnNode.get(r).numInputCards() * 3);
-                    } else {
-                        return Integer.toString(lnNode.get(r).numInputCards());
-                    }
-
-                case NUMOUTCARDS_COLUMN:
-                    if (lnNode.get(r).getNodeType() == LnNode.SMINI) {
-                        return Integer.toString(lnNode.get(r).numOutputCards() * 3);
-                    } else {
-                        return Integer.toString(lnNode.get(r).numOutputCards());
-                    }
-
-                case NUMINBYTES_COLUMN:
-                    return Integer.toString((lnNode.get(r).getNumBitsPerCard()) * lnNode.get(r).numInputCards());
-
-                case NUMOUTBYTES_COLUMN:
-                    return Integer.toString((lnNode.get(r).getNumBitsPerCard()) * lnNode.get(r).numOutputCards());
-
-                case SELECT_COLUMN:
-
-                    return "Select";
-                case NODEDESC_COLUMN:
-
-                    return " " + lnNode.get(r).getcmriNodeDesc();
-*/
                 default:
                     return "";
             }
@@ -471,12 +379,7 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         private static final int DEVELOPER_COLUMN = 2;
         private static final int PRODUCT_COLUMN = 3;
         private static final int SERIALNO_COLUMN = 4;
-//        private static final int NUMINBYTES_COLUMN = 5;
-//        private static final int NUMOUTBYTES_COLUMN = 6;
-//        private static final int SELECT_COLUMN = 7;
         private static final int SELECT_COLUMN = 5;
-//        private static final int NODEDESC_COLUMN = 8;
-//        private static final int NUM_COLUMNS = NODEDESC_COLUMN + 1;
         private static final int NUM_COLUMNS = SELECT_COLUMN + 1;
 
     }
@@ -515,8 +418,6 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 
     private final String[] nodeTableColumnsNames
             = {"Address", "Manufacturer", "Developer", "Product", "Serial No", "Select"};
-
-
 
     private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DiscoverNodesPane.class);
 
