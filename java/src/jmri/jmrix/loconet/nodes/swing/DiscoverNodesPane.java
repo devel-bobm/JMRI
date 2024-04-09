@@ -24,6 +24,7 @@ import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents.Sv2Command;
 import jmri.jmrix.loconet.nodes.LnNode;
 import jmri.util.ThreadingUtil;
+import java.util.TimerTask;
 
 /**
  * Frame for discover nodes on the LocoNet.
@@ -47,8 +48,11 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
     protected NodeTableModel nodeTableModel = null;
     protected JTable nodeTable = null;
 
-//    JButton throttleIdButton = new JButton(Bundle.getMessage("ButtonThrottleId"));
-    JButton doneButton = new JButton(Bundle.getMessage("ButtonDone"));
+    JButton rescanButton = new JButton("Re-scan SV2 Devices");
+
+    private boolean waitingForReplies = false;
+    private java.util.TimerTask waitingForSV2Replies;
+    private int waitingForEnd = -1;
 
     /**
      * {@inheritDoc}
@@ -148,34 +152,23 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         JPanel panel3 = new JPanel();
         panel3.setLayout(new BoxLayout(panel3, FlowLayout.RIGHT));
         panel3.setPreferredSize(new Dimension(950, 50));
-/*
+
         // Set up Done button
-        throttleIdButton.setVisible(true);
-        throttleIdButton.setToolTipText(Bundle.getMessage("ThrottleIdButtonTip"));
-        throttleIdButton.addActionListener((java.awt.event.ActionEvent e) -> {
-            throttleIdButtonActionPerformed();
+        rescanButton.setVisible(true);
+        rescanButton.addActionListener((java.awt.event.ActionEvent e) -> {
+            emptyAndRescan();
         });
-        panel3.add(throttleIdButton);
-*/
-        // Set up Done button
-        doneButton.setVisible(true);
-        doneButton.setToolTipText(Bundle.getMessage("DoneButtonTip"));
-        doneButton.addActionListener((java.awt.event.ActionEvent e) -> {
-            doneButtonActionPerformed();
-        });
-        panel3.add(doneButton);
+        panel3.add(rescanButton);
 
         contentPane.add(panel3);
-//        addHelpMenu("package.jmri.jmrix.cmri.serial.nodeconfigmanager.NodeConfigManagerFrame", true);
-        // pack for display
-//        pack();
+
         nodeTablePanel.setVisible(true);
 
 
         _tc = _memo.getLnTrafficController();
         _tc.addLocoNetListener(~0, this);
 
-        _tc.sendLocoNetMessage(LnSv2MessageContents.createSvDiscoverQueryMessage());
+        startSV2Query();
     }
 
     /*.*
@@ -195,10 +188,21 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
     /**
      * Handle the done button click.
      */
-    public void doneButtonActionPerformed() {
-//        changedNode = false;
-        setVisible(false);
-        dispose();
+    public void emptyAndRescan() {
+
+        log.warn("emptyAndRescan .");
+
+        // stop the timer if running
+        endTheWait();
+
+        // empty the table
+        while (nodeTableModel.getRowCount() > 0) {
+            nodeTableModel.removeRow(0);
+        }
+
+        // re-send the LnSV2 query
+        startSV2Query();
+
     }
 
     private void addNode(LnNode node) {
@@ -210,6 +214,11 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 
     @Override
     public void message(LocoNetMessage msg) {
+        if (!waitingForReplies) {
+            // skip message if not looking for SV identity messages
+            return;
+        }
+
         // Return if the message is not a SV2 message
         if (!LnSv2MessageContents.isSupportedSv2Message(msg)) return;
         LnSv2MessageContents contents = new LnSv2MessageContents(msg);
@@ -244,14 +253,14 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         LnNode selectedNode = getSelectedNode();
         log.warn("LnNode: Mfg: {}, mfgId = {}, Dev: {}, devId = {}, Prod: {}, \n\tdecoderFile: {}.",
                 selectedNode.getManufacturer(), selectedNode.getManufacturerID(),
-                selectedNode.getDeveloper(), selectedNode.getDeveloperID(), 
+                selectedNode.getDeveloper(), selectedNode.getDeveloperID(),
                 selectedNode.getProduct(), selectedNode.getDecoderFile());
 
         if (selectedNode.getDecoderFile() == null) {
             log.warn("openProgrammerActionSelected: no selected decoder file!  Aborting!");
             return;
         }
-        
+
         String programmerFilename;
 
         if (ProgDefault.getDefaultProgFile() != null) {
@@ -273,7 +282,9 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
 //        re.setModel(selectedNode.getDecoderFile().getModel());
         re.setDecoderModel(selectedNode.getDecoderFile().getModel());
         re.setId(SymbolicProgBundle.getMessage("LabelNewDecoder")); // NOI18N
+
         // note that we're leaving the filename null
+
         // add the new roster entry to the in-memory roster
         Roster.getDefault().addEntry(re);
 
@@ -469,9 +480,41 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         private static final int NUM_COLUMNS = SELECT_COLUMN + 1;
 
     }
+    private void endTheWait() {
+        synchronized(this) {
+            waitingForEnd = 1000;
+        }
+    }
+
+    /**
+     * Timer which waits for ~ 10 sec, and can be canceled at every 500 mSec.
+     */
+    private void startSV2Query() {
+        log.warn("Beginning: waiting for SV2 Replies");
+        synchronized (this) {
+            waitingForEnd = 0;
+        }
+        waitingForReplies = true;
+        _tc.sendLocoNetMessage(LnSv2MessageContents.createSvDiscoverQueryMessage());
+
+        waitingForSV2Replies = new java.util.TimerTask() {
+            @Override
+            public void run() {
+                synchronized (this) {
+                    waitingForEnd ++;
+                    if (waitingForEnd > 19) {
+                        waitingForSV2Replies.cancel();
+                        log.warn("ending the SV2 devices request. {}", waitingForEnd);
+                        waitingForEnd = -1;
+                    }
+                }
+            }
+        };
+        jmri.util.TimerUtil.schedule(waitingForSV2Replies, 500, 500);
+    }
 
     private final String[] nodeTableColumnsNames
-            = {"Address", "Manufacturer", "Developer", "Product", "Serial No", "OUT Cards", "IN Bits", "OUT Bits", " ", "  Description"};
+            = {"Address", "Manufacturer", "Developer", "Product", "Serial No", "Select"};
 
 
 
