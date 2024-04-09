@@ -23,20 +23,22 @@ import jmri.jmrix.loconet.LocoNetMessage;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents.Sv2Command;
 import jmri.jmrix.loconet.nodes.LnNode;
+import jmri.jmrix.loconet.swing.LnPanel;
 import jmri.util.ThreadingUtil;
-import java.util.TimerTask;
+import jmri.util.TimerUtil;
 
 /**
- * Frame for discover nodes on the LocoNet.
+ * Frame for discover SV2 nodes on LocoNet.
  * <p>
  * Note: This code uses the decoder definitions in the xml/decoders folder
  * to find manufacturer and developer. If a decoder has a manufacturer
- * of "Public-domain and DIY", it's important that that decoder, in its
- * family definition, has a developerID.
- *
+ * of "Public-domain and DIY", it's important that that decoder defines a
+ * developerID value in its family definition, .
+ * <p>
  * @author Daniel Bergqvist Copyright (C) 2020
+ * @author B. Milhaupt Copyright (C) 2024
  */
-public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implements LocoNetListener {
+public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
 
     private LocoNetSystemConnectionMemo _memo = null;
     private LnTrafficController _tc;
@@ -53,6 +55,9 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
     private boolean waitingForReplies = false;
     private java.util.TimerTask waitingForSV2Replies;
     private int waitingForEnd = -1;
+
+    private final String[] nodeTableColumnsNames
+            = {"Address", "Manufacturer", "Developer", "Product", "Serial No", "Select"};
 
     /**
      * {@inheritDoc}
@@ -119,7 +124,7 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
         comboBox.addItem(Bundle.getMessage("SelectProgram"));
         selectColumn.setCellEditor(new DefaultCellEditor(comboBox));
 
-        
+
         selectColumn.setMinWidth(40);
         selectColumn.setMaxWidth(90);
         selectColumn.setCellRenderer(dtcen);
@@ -275,6 +280,13 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
      * Set up table for displaying bit assignments
      */
     public class NodeTableModel extends AbstractTableModel {
+        private static final int ADDRESS_COLUMN = 0;
+        private static final int MANUFACTURER_COLUMN = 1;
+        private static final int DEVELOPER_COLUMN = 2;
+        private static final int PRODUCT_COLUMN = 3;
+        private static final int SERIALNO_COLUMN = 4;
+        private static final int SELECT_COLUMN = 5;
+        private static final int NUM_COLUMNS = SELECT_COLUMN + 1;
 
         @Override
         public String getColumnName(int c) {
@@ -373,16 +385,8 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
                     return "";
             }
         }
-
-        private static final int ADDRESS_COLUMN = 0;
-        private static final int MANUFACTURER_COLUMN = 1;
-        private static final int DEVELOPER_COLUMN = 2;
-        private static final int PRODUCT_COLUMN = 3;
-        private static final int SERIALNO_COLUMN = 4;
-        private static final int SELECT_COLUMN = 5;
-        private static final int NUM_COLUMNS = SELECT_COLUMN + 1;
-
     }
+
     private void endTheWait() {
         synchronized(this) {
             waitingForEnd = 1000;
@@ -413,11 +417,8 @@ public class DiscoverNodesPane extends jmri.jmrix.loconet.swing.LnPanel implemen
                 }
             }
         };
-        jmri.util.TimerUtil.schedule(waitingForSV2Replies, 500, 500);
+        TimerUtil.schedule(waitingForSV2Replies, 500, 500);
     }
-
-    private final String[] nodeTableColumnsNames
-            = {"Address", "Manufacturer", "Developer", "Product", "Serial No", "Select"};
 
     private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DiscoverNodesPane.class);
 
