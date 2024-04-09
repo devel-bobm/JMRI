@@ -28,7 +28,7 @@ import jmri.util.ThreadingUtil;
 import jmri.util.TimerUtil;
 
 /**
- * Frame for discover SV2 nodes on LocoNet.
+ * Frame for discovery of SV2 nodes on LocoNet.
  * <p>
  * Note: This code uses the decoder definitions in the xml/decoders folder
  * to find manufacturer and developer. If a decoder has a manufacturer
@@ -118,20 +118,15 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
 
         TableColumn selectColumn = assignmentColumnModel.getColumn(NodeTableModel.SELECT_COLUMN);
         JComboBox<String> comboBox = new JComboBox<>();
-        comboBox.addItem(Bundle.getMessage("SelectSelect"));
-        comboBox.addItem(Bundle.getMessage("SelectEdit"));
-        comboBox.addItem(Bundle.getMessage("SelectDelete"));
+        comboBox.addItem("Change Address");
+        comboBox.addItem("Reconfigure");
         comboBox.addItem(Bundle.getMessage("SelectProgram"));
         selectColumn.setCellEditor(new DefaultCellEditor(comboBox));
-
 
         selectColumn.setMinWidth(40);
         selectColumn.setMaxWidth(90);
         selectColumn.setCellRenderer(dtcen);
         selectColumn.setResizable(false);
-
-
-
 
         Border inputBorderTitled = BorderFactory.createTitledBorder(inputBorder,
                 " ",
@@ -160,7 +155,6 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
         contentPane.add(panel3);
 
         nodeTablePanel.setVisible(true);
-
 
         _tc = _memo.getLnTrafficController();
         _tc.addLocoNetListener(~0, this);
@@ -192,7 +186,6 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
             nodeTableModel.addRow(node);
         });
     }
-
 
     @Override
     public void message(LocoNetMessage msg) {
@@ -226,6 +219,15 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
         // If here, the node is not found
         return null;
     }
+
+    public void performChangeAddress(int row) {
+        // TODO - populate
+    }
+
+    public void performReconfigure(int row) {
+        // TODO - populate
+    }
+
 
     /**
      * Open programmer
@@ -350,10 +352,10 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
         @Override
         public void setValueAt(Object value, int row, int col) {
             if (col == SELECT_COLUMN) {
-                if (Bundle.getMessage("SelectEdit").equals(value)) {
-                    // TODO: rename and populate
-                } else if (Bundle.getMessage("SelectDelete").equals(value)) {
-                    // TODO: rename and populate
+                if (value.equals("Change Address")) {
+                    performChangeAddress(row);
+                } else if (value.equals("Reconfigure")) {
+                    performReconfigure(row);
                 } else if (Bundle.getMessage("SelectProgram").equals(value)) {
                     openProgrammerActionSelected();
                 }
