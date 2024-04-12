@@ -98,6 +98,7 @@ public class LocoNetMenu extends JMenu {
         panelItems.add(new LocoNetMenuItem("MenuItemSoundEditor", EditorPane.class, false, true)); // NOI18N
         panelItems.add(null);
         panelItems.add(new LocoNetMenuItem("MenuItemLocoNetOverTCPServer", LnTcpServerAction.class, false, false));
+        panelItems.add(new LocoNetMenuItem("MenuItemSV2Manager", jmri.jmrix.loconet.lnsvf2.swing.Sv2DevicesPanel.class, false, true));
 
         LnCommandStationType cmdStation = null;
         if (memo != null) {
