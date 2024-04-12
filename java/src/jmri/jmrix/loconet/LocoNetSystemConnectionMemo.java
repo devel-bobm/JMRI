@@ -77,6 +77,7 @@ public class LocoNetSystemConnectionMemo extends DefaultSystemConnectionMemo imp
     private SlotManager sm;
     private LncvDevicesManager lncvdm = null;
     private LnMessageManager lnm = null;
+    private LnSv2DevicesManager sv2m = null;
 
     /**
      * Provide access to the SlotManager for this particular connection.
@@ -107,6 +108,9 @@ public class LocoNetSystemConnectionMemo extends DefaultSystemConnectionMemo imp
         this.lt = lt;
     }
 
+    public void setSv2DevicesManager(LnSv2DevicesManager sv2m) {
+        this.sv2m = sv2m;
+    }
     public LnMessageManager getLnMessageManager() {
         // create when needed
         if (lnm == null) {
@@ -220,7 +224,9 @@ public class LocoNetSystemConnectionMemo extends DefaultSystemConnectionMemo imp
         InstanceManager.setDefault(CabSignalManager.class,getCabSignalManager());
 
         setConsistManager(new LocoNetConsistManager(this));
-
+        
+        setSv2DevicesManager(new jmri.jmrix.loconet.LnSv2DevicesManager(this));
+        
         setLncvDevicesManager(new jmri.jmrix.loconet.LncvDevicesManager(this));
 
         ClockControl cc = getClockControl();
@@ -295,6 +301,13 @@ public class LocoNetSystemConnectionMemo extends DefaultSystemConnectionMemo imp
             return null;
         }
         return (LnSensorManager) classObjectMap.computeIfAbsent(SensorManager.class, (Class<?> c) -> new LnSensorManager(this, mInterrogateAtStart));
+    }
+    
+    public LnSv2DevicesManager getSv2DevicesManager() {
+        if (getDisabled()) {
+            return null;
+        }
+        return sv2m;
     }
 
     public LnLightManager getLightManager() {
