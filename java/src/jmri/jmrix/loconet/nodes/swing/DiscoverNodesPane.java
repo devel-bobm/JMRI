@@ -16,13 +16,11 @@ import jmri.jmrit.roster.RosterEntry;
 import jmri.jmrit.symbolicprog.ProgDefault;
 import jmri.jmrit.symbolicprog.SymbolicProgBundle;
 import jmri.jmrit.symbolicprog.tabbedframe.PaneOpsProgFrame;
-import jmri.jmrix.loconet.LocoNetListener;
-import jmri.jmrix.loconet.LocoNetSystemConnectionMemo;
-import jmri.jmrix.loconet.LnTrafficController;
-import jmri.jmrix.loconet.LocoNetMessage;
+import jmri.jmrix.loconet.*;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents.Sv2Command;
 import jmri.jmrix.loconet.nodes.LnNode;
+import jmri.jmrix.loconet.nodes.swing.Bundle;
 import jmri.jmrix.loconet.swing.LnPanel;
 import jmri.util.ThreadingUtil;
 import jmri.util.TimerUtil;
@@ -225,7 +223,20 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
     }
 
     public void performReconfigure(int row) {
-        // TODO - populate
+        LnNode selectedNode = getSelectedNode();
+        if (selectedNode == null) {
+            return;
+        }
+        log.warn("Performing ReConfigure.");
+        int addr = selectedNode.getAddress();
+        int src = 1;
+        int svcmd = LnSv2MessageContents.SV_CMD_RECONFIGURE_REQUEST;
+
+        LocoNetMessage m = LnSv2MessageContents.createSv2Message(
+                src, svcmd, addr, 0, 0, 0, 0, 0);
+        _tc.sendLocoNetMessage(m);
+
+        // TODO: set up for the reply message!
     }
 
 
@@ -233,10 +244,13 @@ public class DiscoverNodesPane extends LnPanel implements LocoNetListener {
      * Open programmer
      */
     public void openProgrammerActionSelected() {
-
         LnNode selectedNode = getSelectedNode();
-        log.warn("LnNode: Mfg: {}, mfgId = {}, Dev: {}, devId = {}, Prod: {}, \n\tdecoderFile: {}.",
-                selectedNode.getManufacturer(), selectedNode.getManufacturerID(),
+        if (selectedNode == null) {
+            log.error("SelectedNode is null.  Aborting!");
+            return;
+        }
+        log.warn("LnNode: mfgId = {}, Dev: {}, devId = {}, Prod: {}, \n\tdecoderFile: {}.",
+                selectedNode.getManufacturerID(),
                 selectedNode.getDeveloper(), selectedNode.getDeveloperID(),
                 selectedNode.getProduct(), selectedNode.getDecoderFile());
 
