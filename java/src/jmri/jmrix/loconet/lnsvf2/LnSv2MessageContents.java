@@ -4,7 +4,6 @@ import java.util.Locale;
 import java.util.Objects;
 
 import jmri.jmrix.loconet.LnConstants;
-//import jmri.jmrix.loconet.LnOpsModeProgrammer;
 import jmri.jmrix.loconet.LocoNetMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -728,6 +727,7 @@ public class LnSv2MessageContents {
     }
     
     /** 
+     * Generate Discovery reply to Discovery request.
      * 
      * @param ida  IDA number for "SRC" field of OPC_PEER_XFER
      * @param currentDest  the destination address of the device
@@ -919,6 +919,14 @@ public class LnSv2MessageContents {
                 deviceAddress, svNum, 0, 0, 0, 0);
     }
 
+    public static LocoNetMessage createChangeAddressMessage(
+            int mfg, int prod, int developer, int serNum, int newAddr) {
+        int src=0;
+        int svNum = developer*256+mfg;
+        return createSv2Message (src, SV_CMD_CHANGE_ADDRESS_REQUEST,
+            newAddr, svNum, prod&0xff, prod>>8, serNum & 0xff, serNum >> 8);
+    }
+
     public enum Sv2Command {
         SV2_WRITE_ONE (0x01),
         SV2_QUERY_ONE (0x02),
@@ -939,14 +947,14 @@ public class LnSv2MessageContents {
         SV2_CHANGE_DEVICE_ADDRESS_REPLY (0x49),
         SV2_RECONFIGURE_DEVICE_REPLY (0x4f);
 
-        private final int cmd;
-        
+        private int cmd;
+
         Sv2Command(int cmd) {
             this.cmd = cmd;
         }
 
-        int getCmd() {return cmd;}
-        
+        public int getCmd() {return cmd;}
+
         public static int getCmd(Sv2Command mt) {
             return mt.getCmd();
         }
