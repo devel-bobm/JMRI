@@ -62,6 +62,7 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
     private List<Sv2ReadAddrTime> readSv2AddressList;
     private java.util.TimerTask delayTask = null;
     private volatile boolean waitingForDiscoveryReplies;
+    private LnSv2MessageContents rememberedDestAddr;
 
     public LnSv2DevicesManager(LocoNetSystemConnectionMemo memo) {
         this.memo = memo;
@@ -72,7 +73,7 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
         readSv2AddressList = new ArrayList<Sv2ReadAddrTime>();
         waitingForDiscoveryReplies = false;
         memo.getLnTrafficController().addLocoNetListener(~0, this);
-
+        rememberedDestAddr = null;
     }
 
     public Sv2Devices getDeviceList() {
@@ -112,7 +113,7 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
             int addr = sv2c.getDestAddr();
 
             sv2Devices.addDevice(new Sv2Device(mfgId, devId, prodId, addr, serNum, "", "", -1));
-            log.debug("new sv2device added");
+            log.warn("new sv2device added");
             firePropertyChange("DeviceListChanged", true, false);
             waitingForDiscoveryReplies = true;
             if (delayTask == null) {
@@ -143,6 +144,7 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
             LnSv2MessageContents svMsg = new LnSv2MessageContents(m);
             switch (LnSv2MessageContents.extractMessageType(m)) {
                 case SV2_REPORT_ONE:
+                    // Care about SV #2: Software Version Number
                     if (svMsg.getSVNum() == 2) {
                         int addr = svMsg.getDestAddr();
                         int val = svMsg.getSv2D1();
@@ -152,6 +154,7 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                         for (int i = 0; i < count; ++ i) {
                             Sv2Device d = sv2Devices.getDevice(i);
                             if (d.getDestAddr() == addr) {
+                                // Have a read reply of SV #2 from the SV Device Address
                                 d.setSwVersion(val);
 
                                 // need to find a corresponding roster entry?
@@ -183,24 +186,140 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                         }
                     }
                     break;
-                case SV2_CHANGE_DEVICE_ADDRESS_REPLY:
-                    int destAddr = svMsg.getDestAddr();
+                case SV2_CHANGE_DEVICE_ADDRESS:
+                    int newDestAddr = svMsg.getDestAddr();
                     int serNum = svMsg.getSv2SerialNum();
                     int mfgId = svMsg.getSv2ManufacturerID();
                     int develId = svMsg.getSv2DeveloperID();
                     int prodId = svMsg.getSv2ProductID();
-                    log.debug("got chg addr reply for mfg {}, prod {}, devel {}, serNum {}, destAddr {}",
-                            mfgId, prodId, develId, serNum, destAddr);
-                    Sv2Device foundDevice = new Sv2Device(mfgId, develId,
-                            prodId, -1, serNum, null, null, -1);
+                    log.warn("got chg addr request message for mfg {}, prod {}, "
+                            + "devel {}, serNum {}, new destAddr {}",
+                            mfgId, prodId, develId, serNum, newDestAddr);
 
-                    int index = sv2Devices.isDeviceExistant(foundDevice);
-                    if (index >=0) {
-                        log.debug("found device {}, setting destAddr {}", index, destAddr);
-                        sv2Devices.getDevice(index).setDestAddr(destAddr);
-                        firePropertyChange("DeviceListChanged", true, false);
+                    rememberedDestAddr = svMsg;
+
+                    break;
+                case SV2_CHANGE_DEVICE_ADDRESS_REPLY:
+                    if ((m.getElement(6) == 0) && (m.getElement(7) == 0) &&
+                            ((m.getElement(5) & 0xC) == 0)) {
+                        if (rememberedDestAddr == null) {
+                            log.warn("Got a Change Device Addr Reply with Dest Addr "
+                                    + "of 0, but Change Address was not sent by JMRI.");
+                            return;
+                        }
+                        log.warn("Got Change Address Reply with address 0.  "
+                                + "Sending a Reconfigure.");
+                        reconfigResetDevice(rememberedDestAddr.getDestAddr());
+                        rememberedDestAddr = null;
+                        return;
+
+                    } else if (svMsg.getDestAddr() == rememberedDestAddr.getDestAddr()) {
+                        // If get a "Change Address" message with corrected Dest Addr,
+                        // find the device by mfg/devel/product/serNum and update
+                        // its Dest Address from the received response message.
+
+                        int newAddr = svMsg.getDestAddr();
+                        mfgId = svMsg.getSv2ManufacturerID();
+                        int devId = svMsg.getSv2DeveloperID();
+                        int productId = svMsg.getSv2ProductID();
+                        int serialNum = svMsg.getSv2SerialNum();
+
+                        int count = sv2Devices.size();
+                        for (int i = 0; i < count; ++ i) {
+                            Sv2Device d = sv2Devices.getDevice(i);
+                            if ((mfgId == d.getManufacturerID()) &&
+                                    (devId == d.getDeveloperID()) &&
+                                    (productId == d.getProductID()) &&
+                                    (serialNum == d.getSerialNum()) &&
+                                    (d.getDestAddr() == rememberedDestAddr.getDestAddr())) {
+                                d.setSwVersion(newAddr);
+                                log.warn("Updated dest address at Change Address Reply Message");
+                            }
+                        }
+                        // if not found, "Oh well..."
+                        rememberedDestAddr = null;
+                        return;
+                    } else {
+                        log.warn("chg addr reply 3: Dest Addr reported as 0; need reconfigure.");
+                        int destAddr = svMsg.getDestAddr();
+                        serNum = svMsg.getSv2SerialNum();
+                        mfgId = svMsg.getSv2ManufacturerID();
+                        develId = svMsg.getSv2DeveloperID();
+                        prodId = svMsg.getSv2ProductID();
+                        log.warn("got chg addr reply for mfg {}, prod {}, devel {}, serNum {}, destAddr {}",
+                                mfgId, prodId, develId, serNum, destAddr);
+                        Sv2Device foundDevice = new Sv2Device(mfgId, develId,
+                                prodId, -1, serNum, null, null, -1);
+
+                        int index = sv2Devices.isDeviceExistant(foundDevice);
+                        if (index >=0) {
+                            log.debug("found device {}, setting destAddr {}", index, destAddr);
+                            sv2Devices.getDevice(index).setDestAddr(destAddr);
+                            firePropertyChange("DeviceListChanged", true, false);
+                        } else {
+                            log.warn("Got Change Address Reply with address 0.  "
+                                    + "Need to reconfigure.");
+                            reconfigResetDevice(rememberedDestAddr.getDestAddr());
+                            rememberedDestAddr = null;
+                            return;
+                        }
                     }
                     break;
+                case SV2_RECONFIGURE_DEVICE_REPLY:
+                    log.warn("Got reconfig device reply.");
+                    // TODO: find the device dope; find the table entry (with
+                    // old address!); change to new device address.
+                    if ((rememberedDestAddr != null) && (svMsg.getDestAddr() == rememberedDestAddr.getDestAddr())) {
+                        // If get a "reconfigure" message, it _may_ be that the
+                        // SV2 device got a "reconfigure" request, and the
+                        // address may have changed as part of the reconfigure operation.
+                        // Find the device's old address (from "rememberedDestAddress",
+                        // kept at the "Change Address Request") and update its dest
+                        // address from the received response message.
+
+                        int newAddr = svMsg.getDestAddr();
+                        mfgId = svMsg.getSv2ManufacturerID();
+                        int devId = svMsg.getSv2DeveloperID();
+                        int productId = svMsg.getSv2SerialNum();
+
+                        int count = sv2Devices.size();
+                        for (int i = 0; i < count; ++ i) {
+                            Sv2Device d = sv2Devices.getDevice(i);
+                            if ((mfgId == d.getManufacturerID()) &&
+                                    (devId == d.getDeveloperID()) &&
+                                    (productId == d.getProductID()) &&
+                                    (d.getDestAddr() == rememberedDestAddr.getDestAddr())) {
+                                d.setSwVersion(newAddr);
+                                log.warn("Updated dest address at Reconfigure Reply Message");
+                            }
+                        }
+                        // if not found, "Oh well..."
+                        rememberedDestAddr = null;
+                        return;
+                    } else {
+                        int destAddr = svMsg.getDestAddr();
+                        serNum = svMsg.getSv2SerialNum();
+                        mfgId = svMsg.getSv2ManufacturerID();
+                        develId = svMsg.getSv2DeveloperID();
+                        prodId = svMsg.getSv2ProductID();
+                        log.warn("got reconfigure reply for mfg {}, prod {}, devel {}, serNum {}, destAddr {}",
+                                mfgId, prodId, develId, serNum, destAddr);
+                        Sv2Device foundDevice = new Sv2Device(mfgId, develId,
+                                prodId, -1, serNum, null, null, -1);
+
+                        int index = sv2Devices.isDeviceExistant(foundDevice);
+                        if (index >=0) {
+                            log.warn("found device {} in memory, setting new destAddr {}", index, destAddr);
+                            sv2Devices.getDevice(index).setDestAddr(destAddr);
+                            firePropertyChange("DeviceListChanged", true, false);
+                        } else {
+                            // do not have the device in memory, so ignore the message
+                            log.warn("did not find the device.  Ignoring the Reconfigure Reply.");
+                            rememberedDestAddr = null;
+                            return;
+                        }
+                    }
+                    return;
                 default:
                     break;
             }
@@ -224,8 +343,17 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                         dev.getDestAddr(),
                         0, 0, 0, 0, 0));
     }
+        public void reconfigResetDevice(int destAddr) {
+        memo.getLnTrafficController().sendLocoNetMessage(
+                LnSv2MessageContents.createSv2Message(
+                        0,
+                        LnSv2MessageContents.Sv2Command.SV2_RECONFIGURE_DEVICE.getCmd(),
+                        destAddr,
+                        0, 0, 0, 0, 0));
+    }
+
     public void reprogramDeviceAddress(Sv2Device dev, int addr) {
-        log.warn("reprogramDeviceAddress");
+        log.warn("reprogramDeviceAddress to {}",addr);
         int mfg = dev.getManufacturerID();
         int developer = dev.getDeveloperID();
         int prod = dev.getProductID();
@@ -234,6 +362,19 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                 LnSv2MessageContents.createChangeAddressMessage(
             mfg, prod, developer, serNum, addr));
 
+    }
+    public int getDestAddr(LocoNetMessage m) {
+        if ((m.getOpCode() != 0xE5) ||
+                (m.getNumDataElements() != 16) ||
+                (m.getElement(1) != 16) ||
+                (m.getElement(4) != 2) ||
+                ((m.getElement(5) & 0xf0) != 0x10) ||
+                ((m.getElement(10) & 0xf0) != 0x10)) {
+            log.warn("Bad message");
+            return -1;
+        }
+        return ((m.getElement(5) & 1) << 7) + m.getElement(6) +
+                ((m.getElement(5) & 2) << 14) + (m.getElement(7) << 8);
     }
 
     public ProgrammingResult prepareForSymbolicProgrammer(Sv2Device dev, Sv2ProgrammingTool t) {
