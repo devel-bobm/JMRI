@@ -687,7 +687,9 @@ public class LnSv2MessageContents {
     
     public int getSv2ManufacturerID() {
         if ((sv_cmd == Sv2Command.SV2_DISCOVER_DEVICE_REPORT.cmd) ||
-                (sv_cmd == Sv2Command.SV2_DEVICE_TYPE_REPORT.cmd)) {
+                (sv_cmd == Sv2Command.SV2_DEVICE_TYPE_REPORT.cmd) ||
+                (sv_cmd == Sv2Command.SV2_CHANGE_DEVICE_ADDRESS.cmd) ||
+                (sv_cmd == Sv2Command.SV2_RECONFIGURE_DEVICE_REPLY.cmd)) {
             return sv_adrl;
         }
         return -1;
@@ -700,7 +702,8 @@ public class LnSv2MessageContents {
     public int getSv2DeveloperID() {
         if ((sv_cmd == Sv2Command.SV2_CHANGE_DEVICE_ADDRESS.cmd) ||
                 (sv_cmd == Sv2Command.SV2_DISCOVER_DEVICE_REPORT.cmd) || 
-                (sv_cmd == Sv2Command.SV2_DEVICE_TYPE_REPORT.cmd)){
+                (sv_cmd == Sv2Command.SV2_DEVICE_TYPE_REPORT.cmd) ||
+                (sv_cmd == Sv2Command.SV2_RECONFIGURE_DEVICE_REPLY.cmd)) {
             return sv_adrh;
         }
         return -1;
