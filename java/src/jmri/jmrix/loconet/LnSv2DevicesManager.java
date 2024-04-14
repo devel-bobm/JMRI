@@ -5,15 +5,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JOptionPane;
 
 import jmri.Programmer;
 import jmri.ProgrammingMode;
 import jmri.beans.PropertyChangeSupport;
-import jmri.jmrit.decoderdefn.DecoderFile;
 import jmri.jmrit.roster.Roster;
 import jmri.jmrit.roster.RosterEntry;
-import jmri.jmrit.symbolicprog.tabbedframe.PaneOpsProgFrame;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents;
 import jmri.jmrix.loconet.lnsvf2.Sv2Device;
 import jmri.jmrix.loconet.lnsvf2.Sv2Devices;
@@ -67,7 +64,8 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
     public LnSv2DevicesManager(LocoNetSystemConnectionMemo memo) {
         this.memo = memo;
         if (memo.getLnTrafficController() == null) {
-            log.error("No LocoNet connection available, this tool cannot function"); // NOI18N
+            log.error("No LocoNet connection available, this tool cannot "
+                    + "function");
         }
         sv2Devices = new Sv2Devices();
         readSv2AddressList = new ArrayList<Sv2ReadAddrTime>();
@@ -112,7 +110,8 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
             int serNum = sv2c.getSv2SerialNum();
             int addr = sv2c.getDestAddr();
 
-            sv2Devices.addDevice(new Sv2Device(mfgId, devId, prodId, addr, serNum, "", "", -1));
+            sv2Devices.addDevice(new Sv2Device(mfgId, devId, prodId, addr, 
+                    serNum, "", "", -1));
             log.warn("new sv2device added");
             firePropertyChange("DeviceListChanged", true, false);
             waitingForDiscoveryReplies = true;
@@ -120,22 +119,28 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                 delayTask = new java.util.TimerTask() {
                     @Override
                     public void run() {
-                        log.debug("triggered delay task {}, {}",waitingForDiscoveryReplies, readSv2AddressList.size());
+                        log.debug("triggered delay task {}, {}",
+                                waitingForDiscoveryReplies, 
+                                readSv2AddressList.size());
                         if (!waitingForDiscoveryReplies) {
                             int sz;
-                            if ((sz = readSv2AddressList.size()) > 0) {
-                                if (readSv2AddressList.get(sz-1).timeSinceAdded() > 500L)
-                                    // at least 500 mSec has elapsed since last discovery report
-                                    querySv2Values();
+                            if (((sz = readSv2AddressList.size()) > 0) &&
+                                    (readSv2AddressList.get(sz-1)
+                                            .timeSinceAdded() > 500L)) {
+                                // At least 500 mSec has elapsed since last 
+                                // discovery report
+                                querySv2Values();
                             }
                         } else {
                             waitingForDiscoveryReplies = false;
                         }
                     }};
-                jmri.util.TimerUtil.scheduleAtFixedRateOnLayoutThread(delayTask, 200, 200);
+                jmri.util.TimerUtil.scheduleAtFixedRateOnLayoutThread(
+                        delayTask, 200, 200);
             } else {
                 delayTask.cancel();
-                jmri.util.TimerUtil.scheduleAtFixedRateOnLayoutThread(delayTask, 500, 500);
+                jmri.util.TimerUtil.scheduleAtFixedRateOnLayoutThread(
+                        delayTask, 500, 500);
             }
             if (addr > 0) {
                 readSv2AddressList.add(new Sv2ReadAddrTime(addr));
@@ -148,19 +153,23 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                     if (svMsg.getSVNum() == 2) {
                         int addr = svMsg.getDestAddr();
                         int val = svMsg.getSv2D1();
-                         log.debug("SVF2 read one reply: device address {} read of SV 2 returns {}", addr, val);
+                         log.debug("SVF2 read one reply: device address {} read "
+                                 + "of SV 2 returns {}", addr, val);
                        // Annotate the discovered device SV2 data based on address
                         int count = sv2Devices.size();
                         for (int i = 0; i < count; ++ i) {
                             Sv2Device d = sv2Devices.getDevice(i);
                             if (d.getDestAddr() == addr) {
-                                // Have a read reply of SV #2 from the SV Device Address
+                                // Have a read reply of SV #2 from the SV Device
+                                // Address
                                 d.setSwVersion(val);
 
                                 // need to find a corresponding roster entry?
                                 if(d.getRosterName().length() == 0) {
-                                    // Yes. Try to find a roster entry which matches the device characteristics
-                                    List<RosterEntry> l = Roster.getDefault().matchingList(null,
+                                    // Yes. Try to find a roster entry which 
+                                    // matches the device characteristics
+                                    List<RosterEntry> l = Roster.getDefault()
+                                            .matchingList(null,
                                         null,
                                         Integer.toString(d.getDestAddr()),
                                         null,
@@ -170,18 +179,21 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                                         Integer.toString(d.getDeveloperID()),
                                         Integer.toString(d.getManufacturerID()),
                                         Integer.toString(d.getProductID()));
-                                    if (l.size() == 0) {
-                                        log.debug("Did not find a corresponding roster entry");
+                                    if (l.isEmpty()) {
+                                        log.debug("Did not find a corresponding"
+                                                + " roster entry");
                                     } else if (l.size() == 1) {
                                         log.debug("Found a matching roster entries.");
                                         d.setRosterEntry(l.get(0));
                                     } else {
-                                        log.info("Found multiple matching roster entries. "
-                                                + "Cannot associate any one to this device.");
+                                        log.info("Found multiple matching roster"
+                                                + " entries.  Cannot associate "
+                                                + "any one to this device.");
                                     }
                                 }
                                 // notify listeners of pertinent change to device
-                                firePropertyChange("DeviceListChanged", true, false);
+                                firePropertyChange("DeviceListChanged", 
+                                        true, false);
                             }
                         }
                     }
@@ -267,8 +279,6 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
                     break;
                 case SV2_RECONFIGURE_DEVICE_REPLY:
                     log.warn("Got reconfig device reply.");
-                    // TODO: find the device dope; find the table entry (with
-                    // old address!); change to new device address.
                     if ((rememberedDestAddr != null) && (svMsg.getDestAddr() == rememberedDestAddr.getDestAddr())) {
                         // If get a "reconfigure" message, it _may_ be that the
                         // SV2 device got a "reconfigure" request, and the
