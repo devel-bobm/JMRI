@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * @author B. Milhaupt
+ * @author B. Milhaupt Copyright (c) 2020, 2024
  */
 public class Sv2DevicesPanel extends LnPanel {
 
@@ -114,7 +114,8 @@ public class Sv2DevicesPanel extends LnPanel {
         // establish table physical characteristics persistence
         sv2DevicesTable.setName("SV2 Device Management");
         // Reset and then persist the table's ui state
-        InstanceManager.getOptionalDefault(JTablePersistenceManager.class).ifPresent((tpm) -> {
+        InstanceManager.getOptionalDefault(JTablePersistenceManager.class).
+                ifPresent((tpm) -> {
             tpm.resetState(sv2DevicesTable);
             tpm.persist(sv2DevicesTable, true);
         });
@@ -129,29 +130,36 @@ public class Sv2DevicesPanel extends LnPanel {
         TableCellEditor buttonEditor = new ButtonEditor(new JButton());
         sv2DevicesTable.setDefaultEditor(JButton.class, buttonEditor);
 
-        // apply a custom cell renderer to the address column
+        // apply a custom cell renderer to the 'Address' column
         sv2DevicesTable.getColumnModel().getColumn(
-                Sv2DeviceDataModel.ADDRESSCOLUMN).setCellRenderer(new AddressColumnCellRenderer());
+                Sv2DeviceDataModel.ADDRESSCOLUMN).setCellRenderer(
+                        new AddressColumnCellRenderer());
 
         // configure a ScrollPane for the table contents
         devicesScroll = new JScrollPane(sv2DevicesTable);
-        devicesScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        devicesScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        devicesScroll.setHorizontalScrollBarPolicy(
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        devicesScroll.setVerticalScrollBarPolicy(
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 
         sv2DevicesTable.setShowHorizontalLines(true);
         sv2DevicesTable.setAutoCreateColumnsFromModel(true);
 
         devicesModel.setParent(devicesScroll);
 
-        // apply scroll pane to the entire panel which contains the table and its scroll pane
+        // apply scroll pane to the entire panel which contains the table and
+        // its scroll pane
         JScrollPane scroll = new JScrollPane(contents);
-        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scroll.setVerticalScrollBarPolicy(
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         // establish button for discovery process
         discoverSvF2DevicesButton.setText("Discover SV2 Devices");
         discoverSvF2DevicesButton.setVisible(true);
-        discoverSvF2DevicesButton.setToolTipText("Perform SV2 'Discovery' operation");
+        discoverSvF2DevicesButton.setToolTipText(
+                "Perform SV2 'Discovery' operation");
         discoverSvF2DevicesButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -188,36 +196,42 @@ public class Sv2DevicesPanel extends LnPanel {
      */
     @Override
     public void dispose() {
-        InstanceManager.getOptionalDefault(JTablePersistenceManager.class).ifPresent((tpm) -> {
+        InstanceManager.getOptionalDefault(JTablePersistenceManager.class).
+                ifPresent((tpm) -> {
             tpm.stopPersisting(sv2DevicesTable);
         });
     }
 
     /**
-     * Cell renderer for destination address column of table.
+     * Cell renderer for 'Destination Address' column of table.
      *
-     * Colors the background of Destination Address cells based on value:
-     * - Red if destination address is 0
-     * - else White
+     * Colors the background of Destination Address cell based on value:
+     * - Red if "Destination Address" is 0;
+     * - Pink if one or more other cells in the column have the same
+     *    "Destination Address" value as this one;
+     * - else White (i.e. no problem found).
      */
     public static class AddressColumnCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
-            //Cells are by default rendered as a JLabel.
-            JLabel l = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
-
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int col) {
+            Component comp = super.getTableCellRendererComponent(table, value,
+                    isSelected, hasFocus, row, col);
+            Object valueAt = table.getModel().getValueAt(row, col);
+            int val = 0;
+            if (valueAt != null) {
+                val = (Integer) valueAt;
+            }
             //Get the status for the current row.
             Sv2DeviceDataModel tableModel = (Sv2DeviceDataModel) table.getModel();
-            if (tableModel.getColumnClass(col).equals(Integer.class) &&
-                    ((Integer)tableModel.getValueAt(row, col)) == 0) {
-                l.setBackground(Color.RED);
+            if (val == 0) {
+                comp.setBackground(Color.RED);
             } else if (tableModel.anyOtherRowsAddressSame(row)) {
-                l.setBackground(Color.YELLOW);
+                comp.setBackground(Color.PINK);
             } else {
-                l.setBackground(Color.WHITE);
+                comp.setBackground(Color.WHITE);
             }
-            //Return the JLabel which renders the cell.
-            return l;
+            return comp;
         }
     }
 
@@ -230,7 +244,6 @@ public class Sv2DevicesPanel extends LnPanel {
     public String getTitle() {
         return getTitle("MenuItemSv2Manager");
     }
-
 
     private final static Logger log = LoggerFactory.getLogger(Sv2DevicesPanel.class);
     }
