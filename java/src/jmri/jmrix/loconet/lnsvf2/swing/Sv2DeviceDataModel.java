@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Data model for table which displays LocoNet SV2 devices.
- * 
+ *
  * Provides mechanisms to
  * - Perform "Discovery" of SV2 devices
  * - Change the "Destination address" of an SV2 device
@@ -74,8 +74,8 @@ public class Sv2DeviceDataModel extends AbstractTableModel
 
     /**
      * Create an Sv2DeviceDataModel.
-     * 
-     * @param memo LocoNetSystemConnection memo for the connection 
+     *
+     * @param memo LocoNetSystemConnection memo for the connection
      */
     public Sv2DeviceDataModel(LocoNetSystemConnectionMemo memo) {
         super();
@@ -150,9 +150,9 @@ public class Sv2DeviceDataModel extends AbstractTableModel
             case PRODUCTIDCOLUMN:
             case DEVELOPERIDCOLUMN:
             case SERIALNUMCOLUMN:
-            case ADDRESSCOLUMN:
             case SOFTWAREVERCOLUMN:
                 return Integer.class;
+            case ADDRESSCOLUMN:
             case DEVICENAMECOLUMN:
             case ROSTERENTRYCOLUMN:
                 return String.class;
@@ -209,15 +209,21 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                                             );
                             log.trace("found {} possible matches", l.size());
                             String lastModelName="";
+                            DecoderFile foundd = null;
                             if (l.size()>0) {
                                 for (DecoderFile d: l) {
                                     if (d.getModel().equals("")) {
                                         log.debug("model is empty");
                                     }
-                                    log.debug("possible match: {}",
-                                            d.titleString(), d.getModel(), d.getFamily());
-                                    lastModelName=d.getModel();
+                                    foundd = d;
+                                    log.debug("\tfound title {}, model {}, family {}",
+                                            foundd.titleString(), foundd.getModel(),
+                                        foundd.getFamily());
                                 }
+                                log.warn("Using: title {}, model {}, family {}, taking the last entry...",
+                                        foundd.titleString(), foundd.getModel(),
+                                        foundd.getFamily());
+                                lastModelName=foundd.getModel();
                                 dev.setDevName(lastModelName);
                                 dev.setDecoderFile(l.get(l.size()-1));
                             }
@@ -236,7 +242,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                 if (dev.getRosterName().length() == 0) {
                     return "Create Roster Entry";
                 }
-                return "Configure SVs";
+                return "Program Device's SVs";
             default:
                 return null;
         }
@@ -270,13 +276,15 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                 memo.getSv2DevicesManager().reconfigResetDevice(dev);
                 break;
             case OPENPRGMRBUTTONCOLUMN:
-                if (((String)getValueAt(row, col)).compareTo("Create Roster Entry")==0) {
-                    createRosterEntry(dev);
+                if (((String)getValueAt(row, OPENPRGMRBUTTONCOLUMN)).
+                        compareTo("Create Roster Entry")==0) {
+                    createRosterEntry(dev, row);
                     if (dev.getRosterEntry() != null) {
                         setValueAt(dev.getRosterName(),row, col);
                     }
-
-                } else {
+                } else if (((String)getValueAt(row,
+                        OPENPRGMRBUTTONCOLUMN))
+                        .compareTo("Program Device's SVs")==0) {
                     openProgrammer(row);
                 }
                 break;
@@ -284,10 +292,8 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                 // no change, so do not fire a property change event
                 return;
         }
-        log.debug("updating row {}", row);
         if (getRowCount() >= 1) {
             this.fireTableRowsUpdated(row, row);
-
         }
     }
 
@@ -307,7 +313,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                     null,
                     Integer.toString(dev.getDestAddr()));
             if (s == null) {
-                log.warn("address change canceled");
+                log.warn("Address change canceled");
                 // user hit "cancel" button
                 return;
             }
@@ -323,7 +329,8 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                 }
             }
         }
-        log.warn("request to set address for row {}, dev {}, mfgID {}, prodID {}, develID {} to address {}.",
+        log.debug("request to set address for row {}, dev {}, mfgID {}, prodID {},"
+                + " develID {} to address {}.",
                 row, dev.getDeviceName(), dev.getManufacturerID(),
                 dev.getProductID(), dev.getDeveloperID(), newVal);
         // Do not simply set the device data structure to the new value.  Instead, send the
@@ -340,10 +347,8 @@ public class Sv2DeviceDataModel extends AbstractTableModel
     public void propertyChange(PropertyChangeEvent evt) {
         // these messages can arrive without a complete
         // GUI, in which case we just ignore them
-        log.debug("property change received event name{} old{} new{}",
+        log.debug("property change received event: name {} old {} new {}",
                 evt.getPropertyName(),evt.getOldValue(), evt.getNewValue());
-        String eventName = evt.getPropertyName();
-        log.debug("Property change seen {}", eventName);
 
         /* always use fireTableDataChanged() because it does not always
             resize columns to "preferred" widths!
@@ -376,40 +381,47 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                 return;
             case FAIL_NO_APPROPRIATE_PROGRAMMER:
                 JOptionPane.showMessageDialog(parentComponent,
-                        "No suitable programmer available for this LocoNet connection."
-                                + " Cannot open the programmer!", "Open Roster Entry", 0);
+                        "No suitable programmer available for this LocoNet "
+                                + "connection.  Cannot open the programmer!",
+                        "Open Roster Entry", 0);
                 return;
             case FAIL_NO_MATCHING_ROSTER_ENTRY:
                 JOptionPane.showMessageDialog(parentComponent,
                         "There does not appear to be a roster entry for this "
-                        + "device.  Cannot open the programmer!", "Open Roster Entry", 0);
+                        + "device.  Cannot open the programmer!", 
+                        "Open Roster Entry", 0);
                 return;
             case FAIL_DESTINATION_ADDRESS_IS_ZERO:
                 JOptionPane.showMessageDialog(parentComponent,
-                        "Device is at address 0.  Re-configure device address to a non-zero"
-                                + "value before programming! "
+                        "Device is at address 0.  Re-configure device address "
+                                + "to a non-zero value before programming! "
                                 + "Canceling operation!", "Open Roster Entry", 0);
                 return;
             case FAIL_MULTIPLE_DEVICES_SAME_DESTINATION_ADDRESS:
                 JOptionPane.showMessageDialog(parentComponent,
-                        "Should not program as there are multiple devices with device"
-                                + " address "+dev.getDestAddr()+" present on LocoNet. "
-                                + "Canceling operation!", "Open Roster Entry", 0);
+                        "Should not program as there are multiple devices with "
+                                + "device address "+dev.getDestAddr()
+                                +" present on LocoNet.  Canceling operation!", 
+                        "Open Roster Entry", 0);
                 return;
             case FAIL_NO_ADDRESSED_PROGRAMMER:
                 JOptionPane.showMessageDialog(parentComponent,
-                        "No addressed programmer available for this LocoNet connection."
-                                + " Cannot open the programmer!", "Open Roster Entry", 0);
+                        "No addressed programmer available for this LocoNet "
+                                + "connection.  Cannot open the programmer!",
+                        "Open Roster Entry", 0);
                 return;
             case FAIL_NO_LNSV_PROGRAMMER:
+                log.warn("failed. no lnsv2 programmer...");
                 JOptionPane.showMessageDialog(parentComponent,
-                        "LNSV2 programming mode is not available on this connection."
-                                + " Cannot open the programmer!", "Open Roster Entry", 0);
+                        "LNSV2 programming mode is not available on this "
+                                + "connection.  Cannot open the programmer!",
+                        "Open Roster Entry", 0);
                 return;
             default:
                 JOptionPane.showMessageDialog(parentComponent,
                         "Unknown error occured.  Cannot open programmer."
-                                + " Cannot open the programmer!", "Open Roster Entry", 0);
+                                + " Cannot open the programmer!", 
+                        "Open Roster Entry", 0);
                 return;
 
         }
@@ -418,10 +430,11 @@ public class Sv2DeviceDataModel extends AbstractTableModel
     public void openPaneOpsProgFrame(RosterEntry re, String name,
             String programmerFile, Programmer p) {
         // would be better if this was a new task on the GUI thread...
-        log.warn("attempting to open programmer, re={}, name={}, prorammerFile={}, programmer={}",
+        log.debug("Attempting to open programmer, re={}, name={}, prorammerFile={}, programmer={}",
                 re, name, programmerFile, p);
 
-        DecoderFile decoderFile = InstanceManager.getDefault(DecoderIndexFile.class).fileFromTitle(re.getDecoderModel());
+        DecoderFile decoderFile = InstanceManager.getDefault(
+                DecoderIndexFile.class).fileFromTitle(re.getDecoderModel());
 
         PaneOpsProgFrame progFrame =
                 new PaneOpsProgFrame(decoderFile, re, name, programmerFile, p);
@@ -431,16 +444,14 @@ public class Sv2DeviceDataModel extends AbstractTableModel
     }
 
     public boolean anyOtherRowsAddressSame( int row) {
-        int targetAddress = (Integer)getValueAt(row,Sv2DeviceDataModel.ADDRESSCOLUMN);
+        int targetAddress = (Integer)getValueAt(row,ADDRESSCOLUMN);
         if (targetAddress == 0) {
             return false; // always return false if address 0.
         }
         for (int i = 0; i < getRowCount(); ++i) {
             if (i != row) {
-                log.debug("checking row {} value {} against taretAddress {} for row {}",i,
-                        getValueAt(i, Sv2DeviceDataModel.ADDRESSCOLUMN), targetAddress, row);
                 // only check rows other then the row that is targeted.
-                int checkAddress = (Integer)getValueAt(i, Sv2DeviceDataModel.ADDRESSCOLUMN);
+                int checkAddress = (Integer)getValueAt(i, ADDRESSCOLUMN);
                 if (checkAddress == targetAddress) {
                     return true;
                 }
@@ -449,7 +460,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
         return false;
     }
 
-    private void createRosterEntry(Sv2Device dev) {
+    private void createRosterEntry(Sv2Device dev, int row) {
         if (dev.getDestAddr() == 0) {
             JOptionPane.showMessageDialog(parentComponent,
                     "Cannot create a roster entry when the destination address"
@@ -482,6 +493,9 @@ public class Sv2DeviceDataModel extends AbstractTableModel
             re.setProductID(Integer.toString(dev.getProductID()));
             re.setId(rosterEntryName);
             _roster.addEntry(re);
+            log.warn("Created a valid roster entry called '{}' for decoder file "
+                    + "'{}'", re.getId(), dev.getDecoderFile().getFileName() );
+            this.fireTableRowsUpdated(row, row);
         }
     }
 
