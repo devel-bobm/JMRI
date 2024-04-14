@@ -388,7 +388,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
             case FAIL_NO_MATCHING_ROSTER_ENTRY:
                 JOptionPane.showMessageDialog(parentComponent,
                         "There does not appear to be a roster entry for this "
-                        + "device.  Cannot open the programmer!", 
+                        + "device.  Cannot open the programmer!",
                         "Open Roster Entry", 0);
                 return;
             case FAIL_DESTINATION_ADDRESS_IS_ZERO:
@@ -401,7 +401,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                 JOptionPane.showMessageDialog(parentComponent,
                         "Should not program as there are multiple devices with "
                                 + "device address "+dev.getDestAddr()
-                                +" present on LocoNet.  Canceling operation!", 
+                                +" present on LocoNet.  Canceling operation!",
                         "Open Roster Entry", 0);
                 return;
             case FAIL_NO_ADDRESSED_PROGRAMMER:
@@ -420,7 +420,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
             default:
                 JOptionPane.showMessageDialog(parentComponent,
                         "Unknown error occured.  Cannot open programmer."
-                                + " Cannot open the programmer!", 
+                                + " Cannot open the programmer!",
                         "Open Roster Entry", 0);
                 return;
 
