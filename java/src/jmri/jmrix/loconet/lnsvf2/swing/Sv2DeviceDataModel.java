@@ -495,6 +495,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
             _roster.addEntry(re);
             log.warn("Created a valid roster entry called '{}' for decoder file "
                     + "'{}'", re.getId(), dev.getDecoderFile().getFileName() );
+            dev.setRosterEntry(re);
             this.fireTableRowsUpdated(row, row);
         }
     }
