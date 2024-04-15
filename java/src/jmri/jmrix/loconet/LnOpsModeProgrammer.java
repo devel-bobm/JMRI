@@ -131,7 +131,7 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
             doingWrite = true;
             // Board programming mode
             log.debug("write CV \"{}\" to {} addr:{}", CV, val, mAddress);
-            
+
             // get prefix if any
             String[] parts = CV.split("\\.");
             int offset = 0;
@@ -152,7 +152,7 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
             int upper3 = ~(((mAddress-1+offset) >> 8) & 0x07);
             int lower2 = (mAddress-1+offset) & 0x03;
             int address7th = ((upper3 << 4) & 0x70) | (lower2 << 1) | 0x08;
-            
+
             // make message - send immediate packet with custom content
             m = new LocoNetMessage(11);
             m.setOpCode(0xED);
@@ -324,7 +324,7 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
             int upper3 = ~(((mAddress-1+offset) >> 8) & 0x07);
             int lower2 = (mAddress-1+offset) & 0x03;
             int address7th = ((upper3 << 4) & 0x70) | (lower2 << 1) | 0x08;
-            
+
             // make message - send immediate packet with custom content
             m = new LocoNetMessage(11);
             m.setOpCode(0xED);
@@ -559,7 +559,7 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
                 notifyProgListenerEnd(temp, val, code);
             }
         } else if (getMode().equals(LnProgrammerManager.LOCONETSV2MODE)) {
-            // see if reply to LNSV 1 or LNSV2 request
+            // see if reply to LNSV2 request
             if (((m.getOpCode() & 0xFF) != LnConstants.OPC_PEER_XFER) ||
                     ((m.getElement( 1) & 0xFF) != 0x10) ||
                     ((m.getElement( 3) != 0x41) && (m.getElement(3) != 0x42)) || // need a "Write One Reply", or a "Read One Reply"
@@ -567,16 +567,16 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
                     ((m.getElement( 5) & 0x70) != 0x10) || // need SVX1 high nibble = 1
                     ((m.getElement(10) & 0x70) != 0x10) // need SVX2 high nibble = 1
                     ) {
+                // not a valid SV2 "Write 1" or "Read one" message
                 return;
             }
             // more checks needed? E.g. addresses?
 
             // return reply
             if (p == null) {
-                log.error("received SV reply message with no reply object: {}", m);
+                log.error("received SV2 reply message with no reply object: {}", m);
             } else {
-                log.debug("returning SV programming reply: {}", m);
-
+                log.warn("returning SV2 programming reply: {}", m);
                 sv2AccessTimer.stop();    // kill the timeout timer
 
                 int code = ProgListener.OK;
@@ -584,7 +584,9 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
 
                 ProgListener temp = p;
                 p = null;
-                notifyProgListenerEnd(temp, val, code);
+                // Delay send of 'notifyProgListenerEnd' after reception of a
+                // SV2 "Write One Reply" or a SV2 "Read One Reply"
+                scheduleSv2NotifyProgEnd(temp, val, code);
             }
         } else if (getMode().equals(LnProgrammerManager.LOCONETLNCVMODE)) {
             // see if reply to LNCV request
@@ -634,6 +636,26 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
                 notifyProgListenerEnd(temp, valReturned, code);
             }
         }
+    }
+
+    /**
+     * Delay invocation of "notifyProgListenerEnd" to (probably) avoid p
+ scheduling the next access before the current one is done.
+     * @param p a ProgListener object
+     * @param value the value to return
+     * @param status The error code, if any
+     */
+    public void scheduleSv2NotifyProgEnd(ProgListener p, int value,
+            int status) {
+        log.warn("scheduling the program end notify");
+        jmri.util.TimerUtil.scheduleOnLayoutThread(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                notifyProgListenerEnd(p, value, status);
+                log.debug("program end notify has been sent!");
+            }
+        }, 50);
+
     }
 
     int decodeCvNum(String CV) {
