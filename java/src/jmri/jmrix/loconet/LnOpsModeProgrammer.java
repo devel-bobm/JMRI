@@ -12,7 +12,6 @@ import jmri.ProgrammingMode;
 import jmri.beans.PropertyChangeSupport;
 import jmri.jmrix.loconet.hexfile.HexFileFrame;
 import jmri.jmrix.loconet.lnsvf2.LnSv2MessageContents;
-//import jmri.jmrix.loconet.swing.lncvprog.LncvProgPane;
 import jmri.jmrix.loconet.uhlenbrock.LncvMessageContents;
 
 import static jmri.jmrix.loconet.uhlenbrock.LncvMessageContents.createCvReadRequest;
@@ -39,7 +38,7 @@ import static jmri.jmrix.loconet.uhlenbrock.LncvMessageContents.createCvWriteReq
  *
  * @see jmri.Programmer
  * @author Bob Jacobsen Copyright (C) 2002
- * @author B. Milhaupt, Copyright (C) 2018
+ * @author B. Milhaupt, Copyright (C) 2018, 2024
  * @author Egbert Broerse, Copyright (C) 2020
  */
 public class LnOpsModeProgrammer extends PropertyChangeSupport implements AddressedProgrammer, LocoNetListener {
@@ -244,6 +243,11 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
      */
     @Override
     public void readCV(String CV, ProgListener pL) throws ProgrammerException {
+        if (this.p != null) {
+            // Failed account already accessing an Ops-mode access!
+            throw new ProgrammerException();
+        }
+
         this.p = null;
         // Check mode
         String[] parts;
@@ -562,31 +566,36 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
             // see if reply to LNSV2 request
             if (((m.getOpCode() & 0xFF) != LnConstants.OPC_PEER_XFER) ||
                     ((m.getElement( 1) & 0xFF) != 0x10) ||
-                    ((m.getElement( 3) != 0x41) && (m.getElement(3) != 0x42)) || // need a "Write One Reply", or a "Read One Reply"
+
+                    // forget all but "Write One Reply" and "Read One Reply"
+                    ((m.getElement( 3) != 0x41) && (m.getElement(3) != 0x42)) ||
+
                     ((m.getElement( 4) & 0xFF) != 0x02) || // format 2)
                     ((m.getElement( 5) & 0x70) != 0x10) || // need SVX1 high nibble = 1
                     ((m.getElement(10) & 0x70) != 0x10) // need SVX2 high nibble = 1
                     ) {
-                // not a valid SV2 "Write 1" or "Read one" message
+                // not a valid and important SV2 message
                 return;
             }
             // more checks needed? E.g. addresses?
 
-            // return reply
+            // Assuming that the SV2 Read One Reply or Write Ome Reply is
+            // coming from a valid SV2 device
+
             if (p == null) {
-                log.error("received SV2 reply message with no reply object: {}", m);
+                log.error("Aborting SV2 read/wrire reply reporting, because programmer is null.\n\tMessage ignored: {}", m);
+                return;
             } else {
                 log.warn("returning SV2 programming reply: {}", m);
+                // return reply to proglistener
                 sv2AccessTimer.stop();    // kill the timeout timer
 
-                int code = ProgListener.OK;
+                int progStatus = ProgListener.OK;
                 int val = (m.getElement(11)&0x7F)|(((m.getElement(10)&0x01) != 0x00)? 0x80:0x00);
 
                 ProgListener temp = p;
                 p = null;
-                // Delay send of 'notifyProgListenerEnd' after reception of a
-                // SV2 "Write One Reply" or a SV2 "Read One Reply"
-                scheduleSv2NotifyProgEnd(temp, val, code);
+                notifyProgListenerEnd(temp, val, progStatus);
             }
         } else if (getMode().equals(LnProgrammerManager.LOCONETLNCVMODE)) {
             // see if reply to LNCV request
@@ -636,26 +645,6 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
                 notifyProgListenerEnd(temp, valReturned, code);
             }
         }
-    }
-
-    /**
-     * Delay invocation of "notifyProgListenerEnd" to (probably) avoid p
- scheduling the next access before the current one is done.
-     * @param p a ProgListener object
-     * @param value the value to return
-     * @param status The error code, if any
-     */
-    public void scheduleSv2NotifyProgEnd(ProgListener p, int value,
-            int status) {
-        log.warn("scheduling the program end notify");
-        jmri.util.TimerUtil.scheduleOnLayoutThread(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                notifyProgListenerEnd(p, value, status);
-                log.debug("program end notify has been sent!");
-            }
-        }, 50);
-
     }
 
     int decodeCvNum(String CV) {
