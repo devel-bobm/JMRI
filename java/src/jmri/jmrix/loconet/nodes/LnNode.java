@@ -54,9 +54,9 @@ public class LnNode implements PropertyChangeProvider, VetoableChangeListener {
      * Create a LnNode with an address.
      *
      * @param address the address of the node
-     * @param manufacturerID
-     * @param developerID
-     * @param productID
+     * @param manufacturerID an integer defined by the NMRA's DCC specs
+     * @param developerID an integer between 0 and 255
+     * @param productID an integer between 0 and 65536
      * @param tc the traffic controller for the LocoNet.
      */
     public LnNode(
