@@ -586,7 +586,7 @@ public class LnOpsModeProgrammer extends PropertyChangeSupport implements Addres
                 log.error("Aborting SV2 read/wrire reply reporting, because programmer is null.\n\tMessage ignored: {}", m);
                 return;
             } else {
-                log.warn("returning SV2 programming reply: {}", m);
+                log.debug("returning SV2 programming reply: {}", m);
                 // return reply to proglistener
                 sv2AccessTimer.stop();    // kill the timeout timer
 
