@@ -150,6 +150,8 @@ public class LnSv2DevicesManager extends PropertyChangeSupport
             switch (LnSv2MessageContents.extractMessageType(m)) {
                 case SV2_REPORT_ONE:
                     // Care about SV #2: Software Version Number
+                    // TODO : Only care about it if it was queried as a result
+                    // of a SV2 Identity reply or an SV2 Discovery reply. 
                     if (svMsg.getSVNum() == 2) {
                         int addr = svMsg.getDestAddr();
                         int val = svMsg.getSv2D1();
