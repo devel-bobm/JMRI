@@ -429,7 +429,6 @@ public class Sv2DeviceDataModel extends AbstractTableModel
 
     public void openPaneOpsProgFrame(RosterEntry re, String name,
             String programmerFile, Programmer p) {
-        // would be better if this was a new task on the GUI thread...
         log.debug("Attempting to open programmer, re={}, name={}, prorammerFile={}, programmer={}",
                 re, name, programmerFile, p);
 
@@ -492,9 +491,16 @@ public class Sv2DeviceDataModel extends AbstractTableModel
             re.setDeveloperID(Integer.toString(dev.getDeveloperID()));
             re.setProductID(Integer.toString(dev.getProductID()));
             re.setId(rosterEntryName);
+            re.setDecoderFamily(dev.getDecoderFile().getFamily());
+            re.setLongAddress(true);
+
             _roster.addEntry(re);
             log.warn("Created a valid roster entry called '{}' for decoder file "
                     + "'{}'", re.getId(), dev.getDecoderFile().getFileName() );
+
+            // TODO: figure out how to change the Roster's file name to
+            // include the SV2 destination address or the roster's "ID", rather 
+            // than just the simple decoder filename.
             dev.setRosterEntry(re);
             this.fireTableRowsUpdated(row, row);
         }
