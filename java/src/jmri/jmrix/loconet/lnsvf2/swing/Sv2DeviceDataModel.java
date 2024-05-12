@@ -5,17 +5,18 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
 import java.util.List;
 
-import javax.swing.JButton;
-import javax.swing.JOptionPane;
+import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 
-import jmri.InstanceManager;
-import jmri.Programmer;
+import jmri.*;
 import jmri.jmrit.decoderdefn.DecoderFile;
 import jmri.jmrit.decoderdefn.DecoderIndexFile;
 import jmri.jmrit.roster.Roster;
 import jmri.jmrit.roster.RosterEntry;
+import jmri.jmrit.symbolicprog.CvTableModel;
+import jmri.jmrit.symbolicprog.VariableTableModel;
 import jmri.jmrit.symbolicprog.tabbedframe.PaneOpsProgFrame;
+import jmri.jmrit.symbolicprog.DccAddressVarHandler;
 
 import jmri.jmrix.loconet.LnSv2DevicesManager;
 import jmri.jmrix.loconet.lnsvf2.Sv2Device;
@@ -72,6 +73,9 @@ public class Sv2DeviceDataModel extends AbstractTableModel
     protected Component parentComponent;
     protected LnSv2DevicesManager lnsv2dm;
 
+    String address = "3";
+    boolean shortAddr = false;
+
     /**
      * Create an Sv2DeviceDataModel.
      *
@@ -99,7 +103,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
     public int getRowCount() {
 
         if (memo == null) {
-            log.warn("getRowCount() memo is null!");
+            log.debug("getRowCount() memo is null!");
             return 0;
         }
         return memo.getSv2DevicesManager().getDeviceList().size();
@@ -220,7 +224,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                                             foundd.titleString(), foundd.getModel(),
                                         foundd.getFamily());
                                 }
-                                log.warn("Using: title {}, model {}, family {}, taking the last entry...",
+                                log.debug("Using: title {}, model {}, family {}, taking the last entry...",
                                         foundd.titleString(), foundd.getModel(),
                                         foundd.getFamily());
                                 lastModelName=foundd.getModel();
@@ -313,7 +317,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                     null,
                     Integer.toString(dev.getDestAddr()));
             if (s == null) {
-                log.warn("Address change canceled");
+                log.debug("Address change canceled");
                 // user hit "cancel" button
                 return;
             }
@@ -411,7 +415,7 @@ public class Sv2DeviceDataModel extends AbstractTableModel
                         "Open Roster Entry", 0);
                 return;
             case FAIL_NO_LNSV_PROGRAMMER:
-                log.warn("failed. no lnsv2 programmer...");
+                log.debug("failed. no lnsv2 programmer...");
                 JOptionPane.showMessageDialog(parentComponent,
                         "LNSV2 programming mode is not available on this "
                                 + "connection.  Cannot open the programmer!",
@@ -460,53 +464,278 @@ public class Sv2DeviceDataModel extends AbstractTableModel
     }
 
     private void createRosterEntry(Sv2Device dev, int row) {
+        CvTableModel cvModel = null;
+        VariableTableModel variableModel;
+
         if (dev.getDestAddr() == 0) {
             JOptionPane.showMessageDialog(parentComponent,
                     "Cannot create a roster entry when the destination address"
                             + " is 0.  Canceling operation."
                     , "Create Roster Entry", 0);
-        } else {
-            String rosterEntryName = null;
-            while (rosterEntryName == null) {
-                rosterEntryName = JOptionPane.showInputDialog(parentComponent,
-                    "Enter a name for the roster entry", "");
-                if (rosterEntryName==null) {
-                    // cancel button hit
-                    return;
+            return;
+        }
+
+        String rosterEntryName = null;
+        while (rosterEntryName == null) {
+            rosterEntryName = JOptionPane.showInputDialog(parentComponent,
+                "Enter a name for the roster entry", "");
+            if (rosterEntryName==null) {
+                // cancel button hit
+                return;
+            }
+        }
+
+        log.debug("got here to create the data entry");
+        if ((dev.getDecoderFile() == null)) {
+            log.warn("cannot create Roster Entry account null decoderfile");
+            return;
+        }
+        
+        if ((dev.getDecoderFile().getFileName() == null)) {
+            log.warn("cannot create Roster Entry account null file name");
+            return;
+        }
+
+        RosterEntry re = new RosterEntry();
+        
+        log.warn("re is null; creating RosterEntry");
+        re.setDecoderFamily(dev.getDecoderFile().getFamily());
+        re.setDecoderModel(dev.getDecoderFile().getModel());
+        re.setId(rosterEntryName);
+        re.setDeveloperID(dev.getDecoderFile().getDeveloperID());
+        re.setManufacturerID(dev.getDecoderFile().getManufacturerID());
+        re.setProductID(dev.getDecoderFile().getProductID());
+
+        _roster.addEntry(re);
+        updateDccAddress(dev);
+
+        if (checkDuplicate(re)) {
+            synchronized (this) {
+                jmri.util.swing.JmriJOptionPane.showMessageDialog(
+                        //progPane, 
+                        parentComponent,
+                        jmri.jmrit.symbolicprog.SymbolicProgBundle.getMessage(
+                                "ErrorDuplicateID")); // NOI18N
+            }
+            return;
+        }
+
+        // Create new roster entry with file name derived from the entry's 
+        // "ID" (i.e. the name entered by the user).
+
+
+        // Get the decoder element and pass it to the RosterEntry creator
+//    This is the old way.          RosterEntry re = new RosterEntry();
+        // TODO: is this right???
+        // RosterEntry re = new RosterEntry(dev.getDecoderFile().getModelElement());
+//        re.setId(rosterEntryName);
+//
+//        log.warn("setting DCC address with {}",dev.getDestAddr());
+//        re.setDecoderModel(dev.getDecoderFile().getModel());
+//        re.setManufacturerID(Integer.toString(dev.getManufacturerID()));
+//        re.setDeveloperID(Integer.toString(dev.getDeveloperID()));
+//        re.setProductID(Integer.toString(dev.getProductID()));
+//        re.setDecoderFamily(dev.getDecoderFile().getFamily());
+//        re.setLongAddress(true);
+//        re.ensureFilenameExists();
+
+//        // TODO: pre-configure the roster entry's "long address"
+//        // with this device's SV2 device address.
+//        jmri.jmrit.symbolicprog.CvTableModel cvtm;
+//        // CvTableModel(JLabel jl, Programmer pProgrammer);
+//        cvtm = new jmri.jmrit.symbolicprog.CvTableModel(null, null);
+//
+//        re.loadCvModel(null, cvtm);
+////            re.setDccAddress(Integer.toString(dev.getDestAddr()));
+//        re.setDccAddress("" + Integer.toString(dev.getDestAddr()));
+//        re.setProtocol(LocoAddress.Protocol.DCC_LONG);
+//
+//        // TODO: just a temporary trial
+////            cvtm.setValueAt("43", 0,1);
+//
+//        // cvtm.getCvToVariableMapping(rosterEntryName);
+//
+        
+        // if there isn't a filename, store using the id
+        re.ensureFilenameExists();
+        String filename = re.getFileName();
+
+        // create the RosterEntry to its file
+        log.debug("setting DCC address {} {}", dev.getDestAddr(), 0);
+        JLabel statusLabel = new JLabel("");
+
+        synchronized (this) {
+            re.setDccAddress("" + dev.getDestAddr());  // NOI18N
+            re.setLongAddress(true);
+            jmri.jmrit.Programmer mProgrammer = new jmri.Programmer();
+            cvModel = new CvTableModel(statusLabel, mProgrammer);
+            variableModel = new VariableTableModel(statusLabel, 
+                    new String[]{"Name", "Value"}, cvModel);
+            mProgrammer.s
+            variableModel.setValueAt(re, row, row);
+            mProgrammer.setVariableValue("Long Address", longAddress); // NOI18N
+
+            re.writeFile(cvModel, variableModel);
+
+            // mark this as a success
+            variableModel.setFileDirty(false);
+        }
+        // and store an updated roster file
+        jmri.util.FileUtil.createDirectory(
+                jmri.util.FileUtil.getUserFilesPath());
+        Roster.getDefault().writeRoster();
+
+//        re.writeFile(null, null);
+
+        /*
+        // This is the code from the roster:
+        log.warn("saveRosterEntry entered");
+        if (rosterIdField.getText().equals(SymbolicProgBundle.getMessage("LabelNewDecoder"))) { // NOI18N
+            synchronized (this) {
+                JmriJOptionPane.showMessageDialog(progPane, SymbolicProgBundle.
+                        getMessage("PromptFillInID")); // NOI18N
+            }
+            throw new JmriException("No Roster ID"); // NOI18N
+        }
+        if (checkDuplicate()) {
+            synchronized (this) {
+                JmriJOptionPane.showMessageDialog(progPane, SymbolicProgBundle.getMessage("ErrorDuplicateID")); // NOI18N
+            }
+            throw new JmriException("Duplicate ID"); // NOI18N
+        }
+
+        if (re == null) {
+            log.debug("re null, creating RosterEntry");
+            re = new RosterEntry();
+            re.setDecoderFamily(decoderFile.getFamily());
+            re.setDecoderModel(decoderFile.getModel());
+            re.setId(rosterIdField.getText());
+            re.setDeveloperID(decoderFile.getDeveloperID());
+            re.setManufacturerID(decoderFile.getManufacturerID());
+            re.setProductID(decoderFile.getProductID());
+            Roster.getDefault().addEntry(re);
+        }
+
+        updateDccAddress();
+
+        // if there isn't a filename, store using the id
+        re.ensureFilenameExists();
+        String filename = re.getFileName();
+
+        // create the RosterEntry to its file
+        log.debug("setting DCC address {} {}", address, shortAddr);
+        synchronized (this) {
+            re.setDccAddress("" + address);  // NOI18N
+            re.setLongAddress(!shortAddr);
+            re.writeFile(cvModel, variableModel);
+
+            // mark this as a success
+            variableModel.setFileDirty(false);
+        }
+        // and store an updated roster file
+        FileUtil.createDirectory(FileUtil.getUserFilesPath());
+        Roster.getDefault().writeRoster();
+
+        // show OK status
+        statusLabel.setText(MessageFormat.format(
+                SymbolicProgBundle.getMessage("StateSaveOK"), // NOI18N
+                filename));
+        log.warn("saveRosterEntry completed!");
+        }
+
+    void updateDccAddress() {
+        log.warn("updateDccAddress entry.");
+        // wrapped in isDebugEnabled test to prevent overhead of assembling message
+        if (log.isDebugEnabled()) {
+            log.debug("updateDccAddress: short {} long {} mode {}",
+                    (primaryAddr == null ? "<null>" : primaryAddr.getValueString()),
+                    (extendAddr == null ? "<null>" : extendAddr.getValueString()),
+                    (addMode == null ? "<null>" : addMode.getValueString()));
+        }
+        new DccAddressVarHandler(primaryAddr, extendAddr, addMode) {
+            @Override
+            protected void doPrimary() {
+                longMode = false;
+                if (primaryAddr != null && !primaryAddr.getValueString().equals("")) {
+                    newAddr = primaryAddr.getValueString();
                 }
             }
 
-            log.warn("got here to create the data entry");
-            if ((dev.getDecoderFile() == null)) {
-                log.warn("cannot create Roster Entry account null decoderfile");
-                return;
-            } else if ((dev.getDecoderFile().getFileName() == null)) {
-                log.warn("cannot create Roster Entry account null file name");
-                return;
+            @Override
+            protected void doExtended() {
+                // long address
+                if (!extendAddr.getValueString().equals("")) {
+                    longMode = true;
+                    newAddr = extendAddr.getValueString();
+                }
             }
-            RosterEntry re = new RosterEntry(dev.getDecoderFile().getFileName());
-            re.setDccAddress(Integer.toString(dev.getDestAddr()));
-            re.setDecoderModel(dev.getDecoderFile().getModel());
-            re.setManufacturerID(Integer.toString(dev.getManufacturerID()));
-            re.setDeveloperID(Integer.toString(dev.getDeveloperID()));
-            re.setProductID(Integer.toString(dev.getProductID()));
-            re.setId(rosterEntryName);
-            re.setDecoderFamily(dev.getDecoderFile().getFamily());
-            re.setLongAddress(true);
-
-            _roster.addEntry(re);
-            log.warn("Created a valid roster entry called '{}' for decoder file "
-                    + "'{}'", re.getId(), dev.getDecoderFile().getFileName() );
-
-            // TODO: figure out how to change the Roster's file name to
-            // include the SV2 destination address or the roster's "ID", rather 
-            // than just the simple decoder filename.
-            dev.setRosterEntry(re);
-            this.fireTableRowsUpdated(row, row);
+        };
+        // update if needed
+        if (newAddr != null) {
+            synchronized (this) {
+                // store DCC address, type
+                address = newAddr;
+                shortAddr = !longMode;
+            }
         }
+        log.warn("updateDccAddress completion!");
     }
 
 
+    
+        */
+
+
+
+
+
+        log.debug("Created a valid roster entry called '{}' for decoder file "
+                + "'{}'", re.getId(), dev.getDecoderFile().getFileName() );
+
+        dev.setRosterEntry(re);
+        this.fireTableRowsUpdated(row, row);
+    }
+
+    /**
+     *
+     * @return true if the value in the id JTextField is a duplicate of some
+     *         other RosterEntry in the roster
+     * 
+     */
+    private boolean checkDuplicate(RosterEntry re) {
+        // check its not a duplicate
+        List<RosterEntry> l = Roster.getDefault().
+                matchingList(null, null, null, null, null, null, 
+                        re.getId());
+        boolean found = false;
+        for (RosterEntry rosterEntry : l) {
+            if (re != rosterEntry) {
+                found = true;
+                break;
+            }
+        }
+        return found;
+    }
+
+    void updateDccAddress(Sv2Device dev) {
+        boolean longMode;
+        String newAddr;
+        log.warn("updateDccAddress entry.: {}",dev.getDestAddr());
+        // wrapped in isDebugEnabled test to prevent overhead of assembling message
+        if (log.isDebugEnabled()) {
+            log.debug("updateDccAddress: short {} long {} mode {}",
+                    "<null>" , dev.getDestAddr() );
+        }
+        newAddr = Integer.toString(dev.getDestAddr());
+        longMode = true;
+        // update if needed
+        synchronized (this) {
+            // store DCC address, type
+            address = newAddr;
+            shortAddr = !longMode;
+        }
+        log.warn("updateDccAddress completion!");
+    }
     public void dispose() {
         if ((memo != null) && (memo.getSv2DevicesManager() != null)) {
             memo.getSv2DevicesManager().removePropertyChangeListener(this);
