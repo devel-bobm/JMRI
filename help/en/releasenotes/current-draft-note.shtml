@@ -480,6 +480,32 @@
              <li></li>
         </ul>
 
+    <h3>Fast Clock</h3>
+        <a id="FastClock" name="FastClock"></a>
+        <ul>
+            <li>The "Set up Fast Clock" tool is now able to display and set the 
+                fast clock's "date".  Be aware:
+                <ul>
+                    <li>JMRI has probably not attempted to make use of a date 
+                        associated with the fast clock.</li>
+                    <li>JMRI code may have used the fast clock's date and <u>
+                        assumed</u> that the "fast clock" date was set to match 
+                        the "real-time" date, at least at the time that the fast
+                        clock was started.  Exactly how this change to JMRI's 
+                        fast clock may affect various JMRI functionality is
+                        not obvious!</li>
+                    <li>The impact of an "external fast clock master" is not 
+                        obvious, especially since differing implementations have
+                        different capabilities.  One example is that Digitrax's 
+                        LocoNet messaging cannot pass the year or the month.  
+                        Exactly how to deal with such missing information is not
+                        obvious!</li>
+                </ul>
+                This set of restrictions may make this set of code changes 
+                "useless", or "problematic".
+            </li>
+        </ul>
+
    <h3>Internationalization</h3>
         <a id="I18N" name="I18N"></a>
         <ul>
