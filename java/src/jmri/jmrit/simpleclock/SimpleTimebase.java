@@ -654,7 +654,8 @@ public class SimpleTimebase extends jmri.implementation.AbstractNamedBean implem
     //  The above is necessary to support hardware clock Time Sources that fiddle with mFactor to
     //      synchronize, instead of sending over a new time to synchronize.
     private double startupFactor = 1.0; // this is the rate requested at startup
-    private boolean startSetRate = true; // if true, the hardware rate will be set to
+    private boolean startSetRate = true; // if true, the hardware rate will be set 
+                                         //       at startup.
     private boolean haveStartupFactor = false; // true if startup factor was ever set.
     // startupFactor at startup.
 

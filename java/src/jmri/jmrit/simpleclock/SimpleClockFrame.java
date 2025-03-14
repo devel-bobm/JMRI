@@ -19,6 +19,9 @@ import jmri.TimebaseRateException;
 import jmri.util.JmriJFrame;
 import jmri.util.swing.JmriJOptionPane;
 
+import com.github.lgooddatepicker.components.CalendarPanel;
+import com.github.lgooddatepicker.components.DatePickerSettings;
+
 /**
  * Frame for user configuration of Simple Timebase.
  * <p>
@@ -57,9 +60,6 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
     protected JTextField minutesField = new JTextField(2);
     protected JTextField startHoursField = new JTextField(2);
     protected JTextField startMinutesField = new JTextField(2);
-    protected JTextField dateDayField = new JTextField(2);
-    protected JTextField dateMonthField = new JTextField(2);
-    protected JTextField dateYearField = new JTextField(4);
     
     protected JButton setRateButton = new JButton(Bundle.getMessage("ButtonSet"));
     protected JButton setTimeButton = new JButton(Bundle.getMessage("ButtonSet"));
@@ -80,6 +80,9 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
     private final int startAnalogClock = 2;
     private final int startLcdClock = 3;
     private final int startPragotronClock = 4 ;
+
+    private CalendarPanel datePicker;
+    private CalendarPanel startDatePicker;
 
     /**
      * Constructor method.
@@ -151,6 +154,8 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
     }
 
     private JPanel getClockStatePanel() {
+        DatePickerSettings datePickerSettings;
+    
 
             // Set up clock information panel
         JPanel clockStatePanel = new JPanel();
@@ -214,29 +219,25 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
         JPanel panel65 = new JPanel();
         panel65.add(new JLabel(Bundle.getMessage("NewDate") + " "));
 
-        panel65.add(dateMonthField);
-        dateMonthField.setText("1");
-        dateMonthField.setToolTipText(Bundle.getMessage("TipMonthField"));
-        panel65.add(new JLabel(" / "));
-
-        panel65.add(dateDayField);
-        dateDayField.setText("1");
-        dateDayField.setToolTipText(Bundle.getMessage("TipDayField"));
-        panel65.add(new JLabel(" / "));
-
-        panel65.add(dateYearField);
-        dateYearField.setText("1970");
-        dateYearField.setToolTipText(Bundle.getMessage("TipYearField"));
-
-
         setDateButton.setToolTipText(Bundle.getMessage("TipSetDateButton"));
         setDateButton.addActionListener(this::setDateButtonActionPerformed);
-        panel65.add(setDateButton);
-
-        
         
         clockStatePanel.add(panel65);
 
+        // Date picker for _current_ "fast date"
+        DatePickerSettings dateSettings = new DatePickerSettings();
+        dateSettings.setFormatForDatesCommonEra("MM/dd/yyyy");
+        dateSettings.setVisibleDateTextField(false);
+        dateSettings.setEnableYearMenu(true);
+        dateSettings.setVisibleYearMenuButton(true);
+        datePicker = new CalendarPanel(dateSettings);
+
+        panel65.add(datePicker);
+
+        panel65.add(setDateButton);
+
+        clockStatePanel.add(panel65);
+        
         JPanel clockStatePanelContainer = new JPanel();
         clockStatePanelContainer.setBorder( BorderFactory.createRaisedBevelBorder() );
         clockStatePanelContainer.setLayout(new BoxLayout(clockStatePanelContainer, BoxLayout.X_AXIS));
@@ -406,6 +407,30 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
         panel64.add(displayStartStopButton);
         startupOptionsPane.add(panel64);
 
+//        
+//        JPanel panel65 = new JPanel();
+//        startSetRateCheckBox = new JCheckBox(Bundle.getMessage("StartSetDate") + " ");
+//        startSetRateCheckBox.setToolTipText(Bundle.getMessage("TipStartSetDate"));
+//  //        startSetRateCheckBox.setSelected(clock.getSetDateAtStart());
+//  //        startSetRateCheckBox.addActionListener(this::startSetDateChanged);
+//        
+//        startupOptionsPane.add(panel65);
+//
+//        JPanel panel65b = new JPanel();
+//        // Date picker for _current_ "fast date"
+//        DatePickerSettings dateSettings = new DatePickerSettings();
+//        dateSettings.setFormatForDatesCommonEra("MM/dd/yyyy");
+//        dateSettings.setVisibleDateTextField(false);
+//        dateSettings.setEnableYearMenu(true);
+//        dateSettings.setVisibleYearMenuButton(true);
+//        startDatePicker = new CalendarPanel(dateSettings);
+//
+//        panel65b.add(startDatePicker);
+//
+//
+//        startupOptionsPane.add(panel65b);
+//
+//        
         startupOptionsPane.setBorder(BorderFactory.createTitledBorder(
                 Bundle.getMessage("BoxLabelStartUp")));
 
@@ -629,86 +654,68 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
         int day;
         int month;
         int year;
-        Timebase originalClock = clock;    // keep a copy
-        log.warn("Got in to set date button!");
-        log.warn("initial date {}",originalClock.getTime().toString());
-
-        // get year, reporting errors if any
-        try {
-            year = Integer.parseInt(dateYearField.getText());
-        } catch (NumberFormatException e) {
-            JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("YearError") + "\n" + e),
+        java.time.LocalDate ld = datePicker.getSelectedDate();
+        if (ld == null) {
+            JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("DateNotSetError")),
                     Bundle.getMessage("ErrorTitle"), JmriJOptionPane.ERROR_MESSAGE);
-            log.error("Exception when parsing Year Field", e);
+            log.error("date is cleared when 'Set' button activated.  Aborting!");
             return;
         }
-        if ((year < 1800) || (year > 2200)) {
+        year = ld.getYear();
+        month = ld.getMonthValue();
+        day = ld.getDayOfMonth();
+        // get year, reporting errors if any
+        if ((year < 1800) || (year >2200)) {
             JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("YearRangeError")),
                     Bundle.getMessage("ErrorTitle"), JmriJOptionPane.ERROR_MESSAGE);
+            log.error("Year out of range.");
             return;
         }
         // get month, reporting errors if any
-        try {
-            month = Integer.parseInt(dateMonthField.getText());
-        } catch (NumberFormatException e) {
-            JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("MonthError") + "\n" + e),
-                    Bundle.getMessage("ErrorTitle"), JmriJOptionPane.ERROR_MESSAGE);
-            log.error("Exception when parsing Month Field", e);
-            return;
-        }
         if ((month < 1) || (month > 12)) {
             JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("MonthRangeError")),
                     Bundle.getMessage("ErrorTitle"), JmriJOptionPane.ERROR_MESSAGE);
+            log.error("Month out of range.");
             return;
         }
         // get day, reporting errors if any
         //
         // note: Use Java's calendar function to deal with number of days in a 
         //       month
-        try {
-            day = Integer.parseInt(dateDayField.getText());
-        } catch (NumberFormatException e) {
-            JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("DayError") + "\n" + e),
+        if ((day < 1) || (day > 31)) {
+            JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("DayRangeError")),
                     Bundle.getMessage("ErrorTitle"), JmriJOptionPane.ERROR_MESSAGE);
-            log.error("Exception when parsing Day Field", e);
+            log.error("Day out of range.");
             return;
         }
         
+        Timebase originalClock = clock;    // keep a copy
         originalClock.setTime(clock.getTime());
         Date date = originalClock.getTime();
-        date.setYear(year-1900);
-        date.setMonth(month-1);
+        java.time.Instant ins;
+        // get current time
+        int hr = date.getHours();
+        int min = date.getMinutes();
+        int sec = date.getSeconds();
         try {
-            date.setDate(day);
-            log.warn("    getTime {}",date);
-            if (date.getDate() != day) {
-                throw(new IllegalArgumentException("bad day number"));
-            }
+            // force new date into temp info 
+            
+            java.time.OffsetDateTime ldt = java.time.OffsetDateTime.of(
+                    java.time.LocalDate.of(year, month, day), 
+                    java.time.LocalTime.of(hr, min, sec),
+                    java.time.ZoneOffset.ofHours(-5));
+            ins = ldt.toInstant();
         } catch (IllegalArgumentException e) {
             JmriJOptionPane.showMessageDialog(this, (Bundle.getMessage("DayRangeError")),
                     Bundle.getMessage("ErrorTitle"), JmriJOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        // set date of the fast clock
-        long mSecPerHour = 3600000;
-        long mSecPerMinute = 60000;
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(clock.getTime());
-        cal.set(year, month-1, day);
-        int hours = cal.get(Calendar.HOUR_OF_DAY);
-        int minutes = cal.get(Calendar.MINUTE);
-
-        int cHours = cal.get(Calendar.HOUR_OF_DAY);
-        long cNumMSec = cal.getTime().getTime();
-        long nNumMSec = ((cNumMSec / mSecPerHour) * mSecPerHour) - (cHours * mSecPerHour)
-                + (hours * mSecPerHour) + (minutes * mSecPerMinute);
-        
-        clock.userSetTime(new Date(nNumMSec));
+        Date newDate =  Date.from(ins);
+        clock.userSetTime(newDate);
         showTime = true;
         updateTime();
-        log.warn("final date {}",clock.getTime().toString());
-
+        log.trace("setDateButtonActionPerformed: fast-clock date/time now set to {}",
+                clock.getTime().toString());
     }
 
     /**
@@ -871,7 +878,6 @@ public class SimpleClockFrame extends JmriJFrame implements PropertyChangeListen
                 + (day / 10) + (day - (day / 10) * 10) + " / "
                 + (year));
         dateLabel.setToolTipText(clock.getTime().toString());
-        log.warn("date set to {}",cal.getTime().toString());
     }
 
     /**
