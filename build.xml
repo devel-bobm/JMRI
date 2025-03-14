@@ -248,6 +248,8 @@
         <!-- //BiDiB -->
         <pathelement location="${libdir}/reflections-0.10.2.jar"/>
         <pathelement location="${libdir}/javassist-3.28.0-GA.jar"/>
+        <!-- Date Picker -->
+        <pathelement location="${libdir}/LGoodDatePicker-11.2.1.jar"/>
     </path>
     <pathconvert property="runtime.class.jars" refid="runtime.class.path"/>
 
