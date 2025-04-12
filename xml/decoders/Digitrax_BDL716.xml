@@ -156,36 +156,72 @@
         <name>Notes</name>
         <column>
             <label>
-                <text>&lt;html&gt;&lt;h2&gt;Notes:</text>
-            </label>
+                <text>&lt;html&gt;&lt;h2&gt;Notes:&lt;/h2&gt;
+                  &lt;ul&gt;
+                  &lt;li&gt;The BDL716 device implements features that "use" various
+                  "Address Spaces".  It is&lt;br&gt;
+                  important that the device <em>does not</em> use any of those
+                  "addresses" that are used by&lt;br&gt;
+                  &lt;strong&gt;&lt;em&gt;any other device&lt;/em&gt;&lt;/strong&gt;
+                  (LocoNet or otherwise!).  The BDL716 is
+                  believed to use the addresses as&lt;br&gt;
+                  described below:&lt;br&gt;
+                  &lt;table border="3"&gt;
+                    &lt;tr&gt;&lt;th&gt;Address Type&lt;/th&gt;
+                    &lt;th&gt;Range of Addresses&lt;/th&gt;
+                    &lt;th&gt;Comments&lt;/th&gt;&lt;/tr&gt;
 
-          <label>
-              <text> </text>
-          </label>
-          <label>
-              <text>&lt;html&gt;&lt;ul&gt;
-              &lt;li&gt;When accessing CVs for the BDL716 device, its CVs are
-                  implemented as if they are in &lt;br;&gt;the LocoNet "switch" address
-                  space, even though the BDL716 &lt;em&gt;does not&lt;/em&gt;
-                  implement &lt;br&gt;any "switches".&lt;/li&gt;
-              &lt;li&gt;The BDL716 might be accessible at &lt;em&gt;any of the
-                  "Switch" numbers&lt;/em&gt; that &lt;br;&gt;correspond to the BDL716's 
-                  "Sensor" addresses.&lt;/li&gt;
-              &lt;li&gt;The BDL716's CVs can (mistakenly!) be mapped to a "Base 
-                  Address" that "overlaps" &lt;br;&gt;another device on this 
-                  LocoNet connection, or via a DCC Track-connected device.  &lt;br;&gt;When 
-                  programming with this roster entry, it might cause other 
+                    &lt;tr&gt;&lt;td&gt;Switches&lt;/td&gt;
+                    &lt;td&gt;(None)&lt;/td&gt;
+                    &lt;td&gt;&lt;/td&gt;
+                    &lt;/tr&gt;
+
+                    &lt;tr&gt;&lt;td&gt;Sensors&lt;/td&gt;
+                    &lt;td&gt;Base Address to&lt;br&gt;(Base Address + 15)&lt;/td&gt;
+                    &lt;td&gt;16 "Detection Sensors".&lt;/td&gt;
+                    &lt;/tr&gt;
+
+                    &lt;tr&gt;&lt;td&gt;Transponding&lt;br&gt;"Zones"&lt;/td&gt;
+                    &lt;td&gt;(None)&lt;/td&gt;
+                    &lt;td&gt;&lt;/td&gt;
+                    &lt;/tr&gt;
+
+                    &lt;tr&gt;&lt;td&gt;NMRA "Extended&lt;br&gt;Accessories"&lt;/td&gt;
+                    &lt;td&gt;Base Address to&lt;br&gt;(Base Address + 3)&lt;/td&gt;
+                    &lt;td&gt;For storing Device "CV" settings. Does&lt;br&gt;
+                      not implement any "Signal Aspect"&lt;br&gt;
+                      addresses.&lt;/td&gt;
+                    &lt;/tr&gt;
+
+                    &lt;tr&gt;&lt;td&gt;"Track Status"&lt;/td&gt;
+                    &lt;td&gt;(None)&lt;/td&gt;
+                    &lt;td&gt;&lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+
+              &lt;li&gt;The BDL716's CVs can (mistakenly!) be mapped to a "Base
+                  Address" that "overlaps" &lt;br;&gt;another device on this
+                  LocoNet connection, or via a DCC Track-connected device.  &lt;br;&gt;When
+                  programming with this roster entry, it might cause other
                   devices to be &lt;br;&gt;mistakenly configured.&lt;/li&gt;
+              &lt;li&gt;Because the DT602 or other mechanisms (like this roster entry!)
+                  can access this BDL716&lt;br;&gt;
+                  device's CVs by any of a number of "device addresses" (See 'NMRA
+                  "Extended Accessories"&lt;br&gt;
+                  in the table above), this roster entry's "Board Address" should
+                  be configured to the&lt;br;&gt;
+                  actual device's Base Address. This will reduce the likelihood of
+                  mis-configuring this&lt;br;&gt;
+                  BDL716 or any other device that may be configured by this type
+                  of configuration method,&lt;br;&gt;
+                  whether a LocoNet peripheral or some other kind of device.&lt;/li&gt;
               &lt;li&gt;Because of the notes above, &lt;/em&gt;it is recommended&lt;/em&gt;
-                  that this BDL716 roster entry &lt;br;&gt;should be set to the 
-                  BDL716's "Base Address" setting, and the Base Address &lt;br;&gt;
-                  setting should not conflict with other BDL716 addresses.
-              &lt;li&gt;The BDL716 device's "Sensor" addresses are from the "Base 
-                  Address" to the &lt;br;&gt;"Base Address" + 15.&lt;/li&gt;
-              &lt;/ul&gt;&lt;/html&gt;</text>
-          </label>
-          <label>
-              <text> </text>
+                  that this BDL716 roster entry &lt;br;&gt;
+                  should be set to the BDL716's "Base Address" setting, and that
+                  care must be taken to avoid&lt;br;&gt;
+                  other devices from using addresses that this BDL716 will use.
+                  Accessory Device" address settings.
+            &lt;/ul&gt;&lt;/html&gt;</text>
           </label>
         </column>
     </pane>
