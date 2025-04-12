@@ -226,7 +226,8 @@ public class Almir {
         }
 
         if (Alm.isDs74CapsRpt(l) || Alm.isDs78vCapsRpt(l) ||
-                Alm.isSe74CapsRpt(l) || Alm.isPm74CapsRpt(l) ) {
+                Alm.isSe74CapsRpt(l) || Alm.isPm74CapsRpt(l) ||
+                Alm.isBdl716CapsRpt(l)) {
             if (Alm.isDs74CapsRpt(l) || Alm.isDs78vCapsRpt(l) ) {
                 switch ((l.getElement(10) & 0x1e) >>1) {
                     case 0:
@@ -258,6 +259,9 @@ public class Almir {
                 mode = "LN_MSG_ALM_HELPER_DEV_MODE_UNDEF"; // NOI18N
                 // addressing has already been set above
             } else if (Alm.isPm74CapsRpt(l)) { // element 10 observed at 0
+                mode = "LN_MSG_ALM_HELPER_DEV_MODE_UNDEF"; // NOI18N
+                // addressing has already been set above
+            } else if (Alm.isBdl716CapsRpt(l)) { // element 10 observed at 0
                 mode = "LN_MSG_ALM_HELPER_DEV_MODE_UNDEF"; // NOI18N
                 // addressing has already been set above
             } else {
