@@ -497,15 +497,13 @@
     <h3>LogixNG</h3>
         <a id="LogixNG" name="LogixNG"></a>
         <ul>
-          <li>The class <strong>jmri.jmrit.logixng.Category</strong> has been split into
-              <strong>jmri.Category</strong> and <strong>jmri.jmrit.logixng.LogixNG_Category</strong>.</li>
           <li></li>
         </ul>
 
     <h3>Meters and MeterFrames</h3>
         <a id="Meters" name="Meters"></a>
         <ul>
-            <li>The shutdown process has been modified to detect changes to the meter settings.</li>
+            <li></li>
         </ul>
 
     <h3>OperationsPro</h3>
@@ -529,8 +527,7 @@
     <h3>Preferences</h3>
         <a id="Preferences" name="Preferences"></a>
         <ul>
-            <li>The Shutdown preference help has been updated. The store request now includes
-            a <strong>Cancel</strong> option which cancels the shutdown process.</li>
+            <li></li>
         </ul>
 
     <h3>Resources</h3>
