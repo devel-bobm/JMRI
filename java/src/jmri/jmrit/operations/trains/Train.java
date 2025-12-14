@@ -254,6 +254,10 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
         return _name;
     }
 
+    public String getSplitName() {
+        return TrainCommon.splitStringLeftParenthesis(getName());
+    }
+
     /**
      * @return The name of the color when highlighting the train's row
      */
@@ -557,10 +561,10 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
         // AM_PM field
         String am_pm = "";
         if (Setup.is12hrFormatEnabled() && !isSortFormat) {
-            am_pm = " " + Bundle.getMessage("AM");
+            am_pm = TrainCommon.SPACE + Bundle.getMessage("AM");
             if (hours >= 12) {
                 hours = hours - 12;
-                am_pm = " " + Bundle.getMessage("PM");
+                am_pm = TrainCommon.SPACE + Bundle.getMessage("PM");
             }
             if (hours == 0) {
                 hours = 12;
@@ -1771,22 +1775,7 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
     public boolean isServiceable(PrintWriter buildReport, Car car) {
         setServiceStatus(NONE);
         // check to see if train can carry car
-        if (!isTypeNameAccepted(car.getTypeName())) {
-            addLine(buildReport, Bundle.getMessage("trainCanNotServiceCarType",
-                    getName(), car.toString(), car.getTypeName()));
-            return false;
-        }
-        if (!isLoadNameAccepted(car.getLoadName(), car.getTypeName())) {
-            addLine(buildReport, Bundle.getMessage("trainCanNotServiceCarLoad",
-                    getName(), car.toString(), car.getTypeName(), car.getLoadName()));
-            return false;
-        }
-        if (!isBuiltDateAccepted(car.getBuilt()) ||
-                !isOwnerNameAccepted(car.getOwnerName()) ||
-                (!car.isCaboose() && !isCarRoadNameAccepted(car.getRoadName())) ||
-                (car.isCaboose() && !isCabooseRoadNameAccepted(car.getRoadName()))) {
-            addLine(buildReport, Bundle.getMessage("trainCanNotServiceCar",
-                    getName(), car.toString()));
+        if (!isTrainAbleToService(buildReport, car)) {
             return false;
         }
 
@@ -1865,7 +1854,10 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
                     return true; // done
                 }
                 // now check car's destination
-                return isServiceableDestination(buildReport, car, rLoc, rLocations);
+                if (isServiceableDestination(buildReport, car, rLoc, rLocations)) {
+                    return true; // train can carry car
+                }
+                continue; // maybe another pick up point in the route?
             }
         }
         if (debugFlag) {
@@ -1997,6 +1989,28 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
         addLine(buildReport, Bundle.getMessage("trainCanNotDeliverToDestination",
                 getName(), car.toString(), car.getDestinationName(), car.getDestinationTrackName()));
         return false;
+    }
+    
+    public boolean isTrainAbleToService(PrintWriter buildReport, Car car) {
+        if (!isTypeNameAccepted(car.getTypeName())) {
+            addLine(buildReport, Bundle.getMessage("trainCanNotServiceCarType",
+                    getName(), car.toString(), car.getTypeName()));
+            return false;
+        }
+        if (!isLoadNameAccepted(car.getLoadName(), car.getTypeName())) {
+            addLine(buildReport, Bundle.getMessage("trainCanNotServiceCarLoad",
+                    getName(), car.toString(), car.getTypeName(), car.getLoadName()));
+            return false;
+        }
+        if (!isBuiltDateAccepted(car.getBuilt()) ||
+                !isOwnerNameAccepted(car.getOwnerName()) ||
+                (!car.isCaboose() && !isCarRoadNameAccepted(car.getRoadName())) ||
+                (car.isCaboose() && !isCabooseRoadNameAccepted(car.getRoadName()))) {
+            addLine(buildReport, Bundle.getMessage("trainCanNotServiceCar",
+                    getName(), car.toString()));
+            return false;
+        }
+        return true;
     }
 
     private boolean isServicableTrack(PrintWriter buildReport, Car car, RouteLocation rldest, Track track) {
@@ -3247,11 +3261,10 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
         }
 
         if (isPreview && Setup.isBuildReportEditorEnabled()) {
-            TrainPrintUtilities.editReport(buildFile, getName());
+            TrainPrintBuildReport.editReport(buildFile, getName());
         } else {
-            TrainPrintUtilities.printReport(buildFile,
-                    Bundle.getMessage("buildReport", getDescription()),
-                    isPreview, NONE, true, NONE, NONE, Setup.PORTRAIT, Setup.getBuildReportFontSize(), true, null);
+            TrainPrintBuildReport.printReport(buildFile,
+                    Bundle.getMessage("buildReport", getDescription()), isPreview);
         }
         return true;
     }
@@ -3348,7 +3361,7 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
         if (name.length() > TrainCommon.getManifestHeaderLineLength() / 2) {
             name = name.substring(0, TrainCommon.getManifestHeaderLineLength() / 2);
         }
-        TrainPrintUtilities.printReport(file, name, isPreview, Setup.getFontName(), false, logoURL, printerName,
+        TrainPrintManifest.printReport(file, name, isPreview, Setup.getFontName(), logoURL, printerName,
                 Setup.getManifestOrientation(), Setup.getManifestFontSize(), Setup.isPrintPageHeaderEnabled(),
                 Setup.getPrintDuplexSides());
         if (!isPreview) {
@@ -3376,7 +3389,7 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
         // Set up to process the CSV file by the external Manifest program
         InstanceManager.getDefault(TrainCustomManifest.class).addCsvFile(file);
         if (!InstanceManager.getDefault(TrainCustomManifest.class).process()) {
-            if (!InstanceManager.getDefault(TrainCustomManifest.class).excelFileExists()) {
+            if (!InstanceManager.getDefault(TrainCustomManifest.class).doesExcelFileExist()) {
                 JmriJOptionPane.showMessageDialog(null,
                         Bundle.getMessage("LoadDirectoryNameFileName",
                                 InstanceManager.getDefault(TrainCustomManifest.class).getDirectoryPathName(),
@@ -3824,6 +3837,20 @@ public class Train extends PropertyChangeSupport implements Identifiable, Proper
             _trainIcon.remove();
         }
         return true;
+    }
+    
+    /**
+     * Checks to see if the train's staging departure track has been taken by another train.
+     * @return True if track has been allocated to another train.
+     */
+    public boolean checkDepartureTrack() {
+        return (Setup.isStagingTrackImmediatelyAvail() &&
+                !isTrainEnRoute() &&
+                getDepartureTrack() != null &&
+                getDepartureTrack().isStaging() &&
+                getDepartureTrack() != getTerminationTrack() &&
+                getDepartureTrack().getIgnoreUsedLengthPercentage() == Track.IGNORE_0 &&
+                getDepartureTrack().getDropRS() > 0);
     }
 
     public void dispose() {

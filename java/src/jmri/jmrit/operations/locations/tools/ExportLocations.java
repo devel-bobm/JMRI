@@ -91,6 +91,7 @@ public class ExportLocations extends XmlFile {
                     Bundle.getMessage("AlternateTrack"),
                     Bundle.getMessage("PoolName"),
                     Bundle.getMessage("Minimum"),
+                    Bundle.getMessage("Maximum"),
                     Bundle.getMessage("TitleTrackBlockingOrder"),
                     Bundle.getMessage("MenuItemPlannedPickups"),
                     Bundle.getMessage("MenuItemDestinations"),
@@ -265,7 +266,8 @@ public class ExportLocations extends XmlFile {
                             track.getReservationFactor(),
                             alternateTrackName,
                             track.getPoolName(),
-                            track.getMinimumLength(),
+                            track.getPoolMinimumLength(),
+                            track.getPoolMaximumLength(),
                             track.getBlockingOrder(),
                             track.getIgnoreUsedLengthPercentage(),
                             Bundle.getMessage(track.getDestinationOption().equals(Track.ALL_DESTINATIONS) ? "All" : "Include"),
@@ -286,8 +288,6 @@ public class ExportLocations extends XmlFile {
                             track.getCommentSetout().replace('\n', ' '));
                 }
             }
-            fileOut.flush();
-            fileOut.close();
             log.info("Exported {} locations to file {}", locations.size(), defaultOperationsFilename());
             JmriJOptionPane.showMessageDialog(null,
                     Bundle.getMessage("ExportedLocationsToFile", locations.size(), defaultOperationsFilename()),

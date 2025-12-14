@@ -457,6 +457,7 @@ public class LayoutEditorTest extends AbstractEditorTestBase<LayoutEditor> {
     public void testGetLayoutName() {
         e.dispose(); // remove existing instance
         e = new LayoutEditor(); // create new instance to test the default name
+        jfo = new EditorFrameOperator(e);
         // default is "My Layout"
         Assert.assertEquals("getLayoutName", "My Layout", e.getLayoutName());
     }
@@ -787,7 +788,7 @@ public class LayoutEditorTest extends AbstractEditorTestBase<LayoutEditor> {
         e.setHighlightSelectedBlock(true);
         // setHighlightSelectedBlock performs some GUI actions, so give
         // the AWT queue some time to clear.
-        new QueueTool().waitEmpty(100);
+        new QueueTool().waitEmpty();
         Assert.assertTrue("le.getHighlightSelectedBlock after setHighlightSelectedBlock(true)", e.getHighlightSelectedBlock());
     }
 
@@ -797,7 +798,7 @@ public class LayoutEditorTest extends AbstractEditorTestBase<LayoutEditor> {
         e.setHighlightSelectedBlock(false);
         // setHighlightSelectedBlock performs some GUI actions, so give
         // the AWT queue some time to clear.
-        new QueueTool().waitEmpty(100);
+        new QueueTool().waitEmpty();
         Assert.assertFalse("le.getHighlightSelectedBlock after setHighlightSelectedBlock(false)", e.getHighlightSelectedBlock());
     }
 

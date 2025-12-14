@@ -182,12 +182,12 @@ public class CarManager extends RollingStockManager<Car>
     }
 
     /**
-     * Return a list available cars (no assigned train or car already assigned to
-     * this train) on a route, cars are ordered least recently moved to most
-     * recently moved.
+     * Return a list available cars (no assigned train or car already assigned
+     * to this train) on a route, cars are ordered least recently moved to most
+     * recently moved. Note that it is possible for a car to have a location,
+     * but no track assignment.
      *
      * @param train The Train to use.
-     *
      * @return List of cars with no assigned train on a route
      */
     public List<Car> getAvailableTrainList(Train train) {
@@ -218,8 +218,8 @@ public class CarManager extends RollingStockManager<Car>
                 destination = null; // include cars at destination
             }
         }
-        // get rolling stock by priority and then by moves
-        List<Car> sortByPriority = sortByPriority(getByMovesList());
+        // get rolling stock by track priority, load priority and then by moves
+        List<Car> sortByPriority = sortByTrackPriority(sortByLoadPriority(getByMovesList()));
         // now build list of available Car for this route
         for (Car car : sortByPriority) {
             // only use Car with a location
@@ -237,7 +237,7 @@ public class CarManager extends RollingStockManager<Car>
     }
 
     // sorts the high priority cars to the start of the list
-    protected List<Car> sortByPriority(List<Car> list) {
+    protected List<Car> sortByLoadPriority(List<Car> list) {
         List<Car> out = new ArrayList<>();
         // move high priority cars to the start
         for (Car car : list) {
